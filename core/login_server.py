@@ -61,7 +61,34 @@ class LoginServer:
             return web.json_response({"code": 400, "msg": "无法获取手机号和验证码"})
         result = await self.kuro.get_token(mobile, code)
         if result["status"]:
-            self._pending_logins[login_id]["token"] = result["data"]["token"]
+            token = result["data"]["token"]
+            user_id = result["data"].get("userId", "")
+            qq_id = self._pending_logins[login_id].get("qq_id", "")
+            # 用 token 查询用户的游戏角色列表
+            server_id = "76402e5b20be2c39f095a152090afddc"  # 默认国服
+            role_id = user_id  # 默认用 userId 作为 roleId
+            try:
+                role_data = await self.kuro.get_role_data(server_id, role_id, token)
+                if role_data["status"]:
+                    for role in role_data["data"].get("roleList", []):
+                        role_id = role.get("roleId", role_id)
+                        break
+            except Exception:
+                pass
+            # 保存到用户账号列表
+            account = {
+                "serverId": server_id,
+                "roleId": str(role_id),
+                "userId": str(user_id),
+                "token": token,
+            }
+            tokens = self.config_mgr.get_user_tokens(qq_id)
+            # 去重：如果已有相同 roleId 的账号，替换之
+            tokens = [t for t in tokens if t.get("roleId") != account["roleId"]]
+            tokens.append(account)
+            self.config_mgr.set_user_tokens(qq_id, tokens)
+            self.logger.info(f"[Waves] 用户 {qq_id} 登录成功, roleId={role_id}, 共 {len(tokens)} 个账号")
+            self._pending_logins[login_id]["token"] = token
             return web.json_response({"code": 200, "msg": "登录成功"})
         return web.json_response({"code": 400, "msg": result.get("msg", "登录失败")})
 
