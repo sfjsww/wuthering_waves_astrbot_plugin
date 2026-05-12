@@ -1,4 +1,5 @@
 """配置管理模块 - 对标原项目 components/Config.js"""
+import json
 import yaml
 from pathlib import Path
 
@@ -7,12 +8,34 @@ class ConfigManager:
     """管理插件配置、用户 Token 绑定、用户数据"""
 
     def __init__(self, astrbot_config: dict, data_dir: Path):
-        self._astrbot_config = astrbot_config
         self.data_dir = data_dir
+        self._config_file = self.data_dir / "config.json"
+        self._astrbot_config = self._load_defaults()
+        # 合并传入的配置（AstrBotConfig 或普通 dict）
+        if astrbot_config:
+            self._astrbot_config.update(astrbot_config)
         self.users_dir = self.data_dir / "users"
         self.gacha_dir = self.data_dir / "gacha"
         self.signin_dir = self.data_dir / "signin"
         self._ensure_dirs()
+
+    def _load_defaults(self) -> dict:
+        """从 _conf_schema.json 加载默认配置值"""
+        import os
+        schema_path = Path(__file__).parent.parent / "_conf_schema.json"
+        defaults = {}
+        if schema_path.exists():
+            with open(schema_path, "r", encoding="utf-8") as f:
+                schema = json.load(f)
+            for key, prop in schema.items():
+                if isinstance(prop, dict) and "default" in prop:
+                    defaults[key] = prop["default"]
+        # 从已保存的配置文件覆盖
+        if self._config_file.exists():
+            with open(self._config_file, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+            defaults.update(saved)
+        return defaults
 
     def _ensure_dirs(self):
         for d in [self.data_dir, self.users_dir, self.gacha_dir, self.signin_dir]:
@@ -23,7 +46,9 @@ class ConfigManager:
 
     def set_config(self, key: str, value):
         self._astrbot_config[key] = value
-        self._astrbot_config.save_config()
+        # 持久化到文件
+        with open(self._config_file, "w", encoding="utf-8") as f:
+            json.dump(self._astrbot_config, f, ensure_ascii=False, indent=2)
 
     def get_user_tokens(self, user_id: str) -> list:
         file_path = self.users_dir / f"{user_id}.yaml"

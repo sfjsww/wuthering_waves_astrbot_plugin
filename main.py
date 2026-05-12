@@ -19,8 +19,10 @@ RESOURCES_DIR = Path(__file__).parent / "resources"
     "https://github.com/sfjsww/wuthering_waves_astrbot_plugin"
 )
 class WavesPlugin(Star):
-    def __init__(self, context: Context, config: AstrBotConfig):
+    def __init__(self, context: Context, config: AstrBotConfig = None):
         super().__init__(context)
+        if config is None:
+            config = {}
         self.astrbot_config = config
         self.data_dir = get_astrbot_data_path() / "plugin_data" / "wuthering_waves_astrbot_plugin"
         self.data_dir.mkdir(parents=True, exist_ok=True)
