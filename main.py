@@ -550,11 +550,20 @@ class WavesPlugin(Star):
         elif action == "bind_uid":
             if code:
                 tokens = self.config_mgr.get_user_tokens(uid)
-                tokens.append({"serverId": "76402e5b20be2c39f095a152090afddc", "roleId": code, "userId": code, "token": ""})
+                # 优先更新已有 token 但 roleId 不对的条目（登录后自动保存的情况）
+                updated = False
+                for t in tokens:
+                    if t.get("token") and t.get("roleId") != code:
+                        t["roleId"] = code
+                        updated = True
+                        break
+                if not updated:
+                    # 没有可更新的条目，新增一个（无token）
+                    tokens.append({"serverId": "76402e5b20be2c39f095a152090afddc", "roleId": code, "userId": code, "token": ""})
                 self.config_mgr.set_user_tokens(uid, tokens)
-                yield event.plain_result(f"已绑定UID: {code}")
+                yield event.plain_result(f"已绑定游戏UID: {code}")
             else:
-                yield event.plain_result("请提供要绑定的UID或特征码。")
+                yield event.plain_result("请提供你的9位游戏UID。在游戏内点击左上角头像即可查看。")
         else:
             yield event.plain_result("请指定: login / bind_uid")
 

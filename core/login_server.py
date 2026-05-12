@@ -64,32 +64,21 @@ class LoginServer:
             token = result["data"]["token"]
             user_id = result["data"].get("userId", "")
             qq_id = self._pending_logins[login_id].get("qq_id", "")
-            # 用 token 查询用户的游戏角色列表
+            # 保存到用户账号列表（roleId 先用 userId 占位，用户需通过 bind_uid 指定正确的游戏UID）
             server_id = "76402e5b20be2c39f095a152090afddc"  # 默认国服
-            role_id = user_id  # 默认用 userId 作为 roleId
-            try:
-                role_data = await self.kuro.get_role_data(server_id, role_id, token)
-                if role_data["status"]:
-                    for role in role_data["data"].get("roleList", []):
-                        role_id = role.get("roleId", role_id)
-                        break
-            except Exception:
-                pass
-            # 保存到用户账号列表
             account = {
                 "serverId": server_id,
-                "roleId": str(role_id),
+                "roleId": str(user_id),
                 "userId": str(user_id),
                 "token": token,
             }
             tokens = self.config_mgr.get_user_tokens(qq_id)
-            # 去重：如果已有相同 roleId 的账号，替换之
             tokens = [t for t in tokens if t.get("roleId") != account["roleId"]]
             tokens.append(account)
             self.config_mgr.set_user_tokens(qq_id, tokens)
-            self.logger.info(f"[Waves] 用户 {qq_id} 登录成功, roleId={role_id}, 共 {len(tokens)} 个账号")
+            self.logger.info(f"[Waves] 用户 {qq_id} 登录成功, 库街区ID={user_id}, Token已保存, 共 {len(tokens)} 个账号。请通过 bind_uid 绑定正确的游戏UID。")
             self._pending_logins[login_id]["token"] = token
-            return web.json_response({"code": 200, "msg": "登录成功"})
+            return web.json_response({"code": 200, "msg": f"登录成功！你的库街区ID: {user_id}。在QQ群发送「绑定UID 你的9位游戏UID」来绑定正确的游戏角色。"})
         return web.json_response({"code": 400, "msg": result.get("msg", "登录失败")})
 
     async def _fallback(self, request: web.Request):
