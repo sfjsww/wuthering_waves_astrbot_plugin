@@ -10,18 +10,22 @@ class ConfigManager:
     def __init__(self, astrbot_config: dict, data_dir: Path):
         self.data_dir = data_dir
         self._config_file = self.data_dir / "config.json"
-        self._astrbot_config = self._load_defaults()
-        # 合并传入的配置（AstrBotConfig 或普通 dict）
+        # 1. 加载 schema 默认值
+        self._astrbot_config = self._load_schema_defaults()
+        # 2. 合并 AstrBot 传入的配置（WebUI 修改的值）
         if astrbot_config:
             self._astrbot_config.update(astrbot_config)
+        # 3. 用本地持久化配置覆盖（最高优先级）
+        if self._config_file.exists():
+            with open(self._config_file, "r", encoding="utf-8") as f:
+                self._astrbot_config.update(json.load(f))
         self.users_dir = self.data_dir / "users"
         self.gacha_dir = self.data_dir / "gacha"
         self.signin_dir = self.data_dir / "signin"
         self._ensure_dirs()
 
-    def _load_defaults(self) -> dict:
+    def _load_schema_defaults(self) -> dict:
         """从 _conf_schema.json 加载默认配置值"""
-        import os
         schema_path = Path(__file__).parent.parent / "_conf_schema.json"
         defaults = {}
         if schema_path.exists():
@@ -30,11 +34,6 @@ class ConfigManager:
             for key, prop in schema.items():
                 if isinstance(prop, dict) and "default" in prop:
                     defaults[key] = prop["default"]
-        # 从已保存的配置文件覆盖
-        if self._config_file.exists():
-            with open(self._config_file, "r", encoding="utf-8") as f:
-                saved = json.load(f)
-            defaults.update(saved)
         return defaults
 
     def _ensure_dirs(self):

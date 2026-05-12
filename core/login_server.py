@@ -70,7 +70,9 @@ class LoginServer:
 
     def create_login_session(self, login_id: str, user_id: str, qq_id: str):
         self._pending_logins[login_id] = {"user_id": user_id, "qq_id": qq_id}
-        public_link = self.config_mgr.get_config().get("public_link", "http://127.0.0.1:25088")
+        cfg = self.config_mgr.get_config()
+        public_link = cfg.get("public_link", "http://127.0.0.1:25088")
+        self.logger.info(f"[Waves] create_login_session: public_link={public_link}, all_keys_in_cfg={list(cfg.keys())[:5]}...")
         return f"{public_link}/login/{login_id}"
 
     def get_session_result(self, login_id: str) -> dict | None:
