@@ -1,0 +1,191 @@
+@font-face {
+    font-family: "Guruwords";
+    src: url("../../fonts/Guruwords.ttf");
+    font-weight: normal;
+    font-style: normal;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+}
+
+#body {
+    transform-origin: top left;
+    width: 1220px;
+    height: auto;
+    font-family: "Guruwords";
+}
+
+#body>div {
+    width: 1220px;
+    background: url(imgs/background.png) no-repeat;
+}
+
+#account {
+    height: 424px;
+}
+
+#user-avatar {
+    position: absolute;
+    height: 200px;
+    width: 200px;
+    left: 73px;
+    top: 105px;
+    z-index: 1;
+    border-radius: 50%;
+}
+
+#user-name {
+    position: relative;
+    left: 323px;
+    top: 132px;
+    height: auto;
+    color: white;
+    font-size: 58px;
+}
+
+#user-uid {
+    position: relative;
+    left: 462px;
+    top: 143px;
+    color: white;
+    font-size: 39px;
+}
+
+.title {
+    position: relative;
+    margin: 52px 0px 0px 58px;
+    width: 1108px;
+    height: 242px;
+}
+
+.title>img {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+.title>.exploratory-text {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    left: 300px;
+    height: 242px;
+    width: 758px;
+    justify-content: space-between;
+}
+
+.exploratory-text>.exploratory-name {
+    left: 272px;
+    color: #fdf8ea;
+    font-size: 67px;
+}
+
+.exploratory-text>.exploratory-degree {
+    right: 58px;
+    text-align: right;
+    color: #f1e5be;
+    font-size: 47px;
+}
+
+.area {
+    margin: 21px 0px 0px 57px;
+    width: 1108px;
+    height: auto;
+}
+
+.area-name {
+    padding: 20px 0px 0px 30px;
+    height: 130px;
+    background: url(imgs/area-bg.png) no-repeat;
+    background-size: cover;
+}
+
+.area-key {
+    display: inline-block;
+    padding: 16px 0px 0px 14px;
+    color: #fff;
+    font-size: 40px;
+    font-size: 45px;
+}
+
+.area-value {
+    display: inline-block;
+    padding: 16px 0px 0px 18px;
+    color: #cfa251;
+    font-size: 40px;
+    font-size: 45px;
+}
+
+.progress {
+    min-height: 94px;
+    display: flex;
+    flex-direction: row;
+    width: 1108px;
+    border: 3px solid #e9e2dc;
+    border-top-color: transparent;
+    align-items: center;
+}
+
+.progress-name {
+    margin: 22px 0px;
+    padding-left: 16px;
+    color: #353535;
+    font-size: 38px;
+    font-weight: 700;
+    width: 190px;
+}
+
+.progress-bar-frame {
+    height: 32px;
+    width: 802px;
+    border-radius: 16px;
+    border: 3px solid #cac0bc;
+}
+
+.progress-bar-total {
+    position: relative;
+    left: 8px;
+    top: 5px;
+    width: 780px;
+    background-color: #cbcbcb;
+    border-radius: 20px;
+}
+
+.progress-bar {
+    height: 16px;
+    line-height: 28px;
+    background-color: #bfa852;
+    border-radius: 20px;
+}
+
+.progress-number {
+    width: 100px;
+    color: #353535;
+    font-size: 38px;
+    font-weight: 700;
+    text-align: right;
+    float: right;
+}
+
+#copyright {
+    position: relative;
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0 auto;
+    color: white;
+    text-shadow: 2px 2px 2px black;
+    text-align: center;
+    padding-top: 40px;
+    padding-bottom: 10px;
+}
+
+#copyright .version {
+    color: #d3bc8e;
+    display: inline-block;
+    padding: 0 3px;
+}

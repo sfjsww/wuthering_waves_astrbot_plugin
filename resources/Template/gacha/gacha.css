@@ -1,0 +1,228 @@
+@font-face {
+    font-family: "Guruwords";
+    src: url("../../fonts/Guruwords.ttf");
+    font-weight: normal;
+    font-style: normal;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+}
+
+#body {
+    transform-origin: top left;
+    display: inline-block;
+    font-family: "Guruwords";
+}
+
+#body>div {
+    display: inline-block;
+}
+
+hr {
+    display: inline-block;
+    width: auto;
+}
+
+#main-box {
+    width: auto;
+    display: flex;
+    flex-direction: row;
+    padding: 40px 40px 0 40px;
+    font-family: "Guruwords";
+}
+
+.column {
+    width: 976px;
+}
+
+.box {
+    position: relative;
+    margin: 40px 20px;
+    border-radius: 20px;
+    box-shadow: 4px 4px 20px rgba(225, 225, 225, 0.8);
+}
+
+.pool-type {
+    position: absolute;
+    margin: -22px 0px 0px -20px;
+    background-color: #d7b784;
+    color: #fef1de;
+    width: 160px;
+    font-size: 24px;
+    text-align: center;
+    padding: 6px 4px;
+    border-radius: 0px 22px 22px 22px;
+    font-weight: bold;
+}
+
+.user {
+    position: relative;
+    margin: 40px 20px;
+    height: 160px;
+    border-radius: 0px 0px 0px 0px;
+    overflow: hidden;
+}
+
+.user-bg {
+    position: absolute;
+    z-index: -1;
+    height: 160px;
+    width: 896px;
+}
+
+.user-uid {
+    position: relative;
+    left: 60px;
+    top: 20px;
+    color: black;
+    font-size: 56px;
+    font-weight: 800;
+}
+
+.user-cost {
+    font-family: "Guruwords";
+    position: relative;
+    left: 60px;
+    top: 10px;
+    color: black;
+    font-size: 36px;
+    font-weight: 800;
+}
+
+.user-emoji {
+    position: absolute;
+    bottom: 12px;
+    right: 100px;
+    height: 140px;
+}
+
+.box-overview {
+    display: grid;
+    grid-template-columns: 160px 160px 160px 160px 160px;
+    width: 100%;
+    height: 300px;
+    padding: 30px 49.12px;
+}
+
+.box-overview>* {
+    width: 160px;
+    height: 120px;
+    text-align: center;
+}
+
+.value {
+    font-size: 48px;
+    font-weight: bold;
+}
+
+.value-unit {
+    font-size: 20px;
+}
+
+.key {
+    color: #949494;
+    font-size: 22px;
+}
+
+.box-time {
+    display: flex;
+    flex-direction: row;
+}
+
+.line-left {
+    vertical-align: middle;
+    text-align: left;
+    display: inline-block;
+    width: 100%;
+    border-top: 2px solid #ccc;
+}
+
+.line-middle {
+    margin-top: -14px;
+    vertical-align: middle;
+    font-size: 20px;
+    color: #999;
+    white-space: nowarp;
+    width: 270%;
+    text-align: center;
+}
+
+.line-right {
+    vertical-align: middle;
+    text-align: right;
+    display: inline-block;
+    width: 100%;
+    border-top: 2px solid #ccc;
+}
+
+.box-rolelist {
+    padding: 30px 49.12px;
+    display: grid;
+    grid-template-columns: 120px 120px 120px 120px 120px 120px;
+    column-gap: 16px;
+    row-gap: 24px;
+}
+
+.role-box {
+    position: relative;
+    background: linear-gradient(#8f6340, #d0894b);
+    background-size: cover;
+    border-radius: 20px;
+    color: #fff;
+}
+
+.role-box>img {
+    width: 120px;
+    height: 120px;
+    object-fit: cover;
+    object-position: top;
+    border-radius: 20px 20px 20px 20px;
+}
+
+.isup {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    height: 36px;
+    width: 44px;
+    text-align: center;
+    background-color: rgba(66, 66, 66, 1);
+    font-size: 26px;
+    font-weight: bold;
+    border-radius: 6px;
+}
+
+.gacha-time {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 100%;
+    height: 36px;
+    font-size: 26px;
+    text-align: center;
+    background-color: #feeb73;
+    font-weight: bold;
+    border-radius: 0px 0px 20px 20px;
+}
+
+#copyright {
+    position: relative;
+    font-size: 20px;
+    font-weight: bold;
+    margin: 0 auto;
+    color: white;
+    text-shadow: 2px 2px 2px black;
+    text-align: center;
+    padding-top: 40px;
+    padding-bottom: 10px;
+}
+
+#copyright .version {
+    color: #d3bc8e;
+    display: inline-block;
+    padding: 0 3px;
+}

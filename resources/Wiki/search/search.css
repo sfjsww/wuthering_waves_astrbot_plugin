@@ -1,0 +1,83 @@
+@font-face {
+    font-family: "Guruwords";
+    src: url("../../fonts/Guruwords.ttf");
+    font-weight: normal;
+    font-style: normal;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+}
+
+#body {
+    transform-origin: top left;
+    width: 1196px;
+    height: auto;
+    padding: 50px 50px 0 50px;
+    font-family: "Guruwords";
+    background: url(./imgs/search.png) no-repeat;
+}
+
+#list {
+    display: grid;
+    grid-template-columns: 166px 166px 166px 166px 166px 166px;
+    column-gap: 20px;
+    row-gap: 20px;
+}
+
+.item {
+    position: relative;
+    overflow: hidden;
+    height: 348px;
+    background-color: #000;
+    border-radius: 6px;
+}
+
+.item-bg {
+    position: absolute;
+    top: 0px;
+    width: 166px;
+    height: 348px;
+}
+
+.item-icon {
+    position: absolute;
+    top: 0px;
+    width: 166px;
+    height: 284px;
+    object-fit: cover;
+    object-position: top;
+}
+
+.item-name {
+    position: relative;
+    top: 300px;
+    width: 166px;
+    color: white;
+    font-size: 20px;
+    text-align: center;
+    overflow: hidden;
+    height: 40px;
+    line-height: 20px;
+}
+
+#copyright {
+    position: relative;
+    font-size: 22px;
+    font-weight: bold;
+    margin: 0 auto;
+    color: white;
+    text-shadow: 2px 2px 2px black;
+    text-align: center;
+    padding-top: 40px;
+    padding-bottom: 10px;
+}
+
+#copyright .version {
+    color: #d3bc8e;
+    display: inline-block;
+    padding: 0 3px;
+}

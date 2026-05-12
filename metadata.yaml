@@ -1,0 +1,6 @@
+name: wuthering_waves_astrbot_plugin
+display_name: 鸣潮Waves查询插件
+description: "基于库街区的鸣潮游戏数据查询插件，支持角色面板、签到、抽卡记录、数据坞、深塔等全部功能。提供 24 个 LLM 可调用的函数工具。"
+author: sfjsww
+version: 1.0.0
+repo: https://github.com/sfjsww/wuthering_waves_astrbot_plugin

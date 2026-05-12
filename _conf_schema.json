@@ -1,0 +1,118 @@
+{
+  "reverse_proxy_url": {
+    "description": "库街区API反向代理地址",
+    "type": "string",
+    "default": "https://api.kurobbs.com"
+  },
+  "proxy_url": {
+    "description": "HTTP代理地址",
+    "type": "string",
+    "default": ""
+  },
+  "signin_time": {
+    "description": "自动签到Cron表达式",
+    "type": "string",
+    "default": "0 10 0 * * *"
+  },
+  "task_time": {
+    "description": "自动任务Cron表达式",
+    "type": "string",
+    "default": "0 10 0 * * *"
+  },
+  "sanity_push_time": {
+    "description": "体力推送Cron表达式",
+    "type": "string",
+    "default": "0 */7 * * * *"
+  },
+  "news_push_time": {
+    "description": "公告推送Cron表达式",
+    "type": "string",
+    "default": "0 */15 * * * *"
+  },
+  "signin_interval": {
+    "description": "签到间隔(秒)",
+    "type": "int",
+    "default": 37
+  },
+  "task_interval": {
+    "description": "任务间隔(秒)",
+    "type": "int",
+    "default": 37
+  },
+  "strategy_provide": {
+    "description": "攻略图提供方",
+    "type": "string",
+    "options": ["all", "XMu", "moealkyne", "Linn", "ruozi"],
+    "default": "all"
+  },
+  "use_public_cookie": {
+    "description": "允许使用公共Token查询",
+    "type": "bool",
+    "default": true
+  },
+  "allow_import": {
+    "description": "允许导入抽卡记录",
+    "type": "bool",
+    "default": false
+  },
+  "enable_log": {
+    "description": "输出成功日志",
+    "type": "bool",
+    "default": false
+  },
+  "render_scale": {
+    "description": "图片渲染精度(50-200)",
+    "type": "int",
+    "default": 100
+  },
+  "limit": {
+    "description": "接口并发量",
+    "type": "int",
+    "default": 10
+  },
+  "allow_login": {
+    "description": "允许网页登录",
+    "type": "bool",
+    "default": false
+  },
+  "server_port": {
+    "description": "登录服务器端口",
+    "type": "int",
+    "default": 25088
+  },
+  "public_link": {
+    "description": "登录服务公开地址",
+    "type": "string",
+    "default": "http://127.0.0.1:25088"
+  },
+  "background_api": {
+    "description": "登录页背景图API",
+    "type": "string",
+    "default": "https://www.loliapi.com/acg"
+  },
+  "allow_img_upload": {
+    "description": "允许普通用户上传面板图",
+    "type": "bool",
+    "default": false
+  },
+  "allow_get_origin": {
+    "description": "允许普通用户获取原图",
+    "type": "bool",
+    "default": true
+  },
+  "allow_get_list": {
+    "description": "允许普通用户获取面板图列表",
+    "type": "bool",
+    "default": false
+  },
+  "allow_img_delete": {
+    "description": "允许普通用户删除面板图",
+    "type": "bool",
+    "default": false
+  },
+  "allow_set_alias": {
+    "description": "允许普通用户设置别名",
+    "type": "bool",
+    "default": false
+  }
+}

@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+    <link rel="shortcut icon" href="#" />
+    <link rel="stylesheet" type="text/css" href="{{pluginResources}}/Template/userInfo/userInfo.css" />
+    <link rel="preload" href="{{pluginResources}}/fonts/Guruwords.ttf" as="font" />
+</head>
+
+<body id="body" {{sys.scale}}>
+    <div>
+        <div id="account">
+            {{if avatarUrl}}<img src="{{avatarUrl}}" id="user-avatar">{{/if}}
+            <div id="user-name">{{baseData.name}}</div>
+            <div id="user-uid">{{baseData.id}}</div>
+        </div>
+        <div id="profile">
+            <div class="value">{{baseData.activeDays}}</div>
+            <div class="value">{{baseData.level}}</div>
+            <div class="value">{{baseData.worldLevel}}</div>
+            <div class="value">{{baseData.achievementCount}}</div>
+            <div class="value">{{baseData.roleNum}}</div>
+            <div class="value">{{baseData.achievementStar}}</div>
+            <div class="value">{{baseData.smallCount}}</div>
+            <div class="value">{{baseData.bigCount}}</div>
+            <div class="value">{{baseData.boxList[0].num}}</div>
+            <div class="value">{{baseData.boxList[1].num}}</div>
+            <div class="value">{{baseData.boxList[2].num}}</div>
+            <div class="value">{{baseData.boxList[3].num}}</div>
+        </div>
+        <div id="character-frame">
+            {{each roleData.roleList character idx}}
+            <div class="character">
+                <img src="{{pluginResources}}/Template/userInfo/imgs/{{character.starLevel}}.png" class="character-bg">
+                <div class="char-avatar-frame">
+                    <img src="{{character.roleIconUrl}}" class="char-avatar">
+                </div>
+                <img src="{{pluginResources}}/Template/userInfo/imgs/attribute/{{character.attributeId}}.png"
+                    class="char-attr">
+                <span class="char-name">{{character.roleName}}</span>
+            </div>
+            {{/each}}
+        </div>
+        <div id="copyright">{{@copyright}}</div>
+    </div>
+</body>
+
+</html>

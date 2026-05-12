@@ -1,0 +1,141 @@
+@font-face {
+    font-family: "Guruwords";
+    src: url("../../fonts/Guruwords.ttf");
+    font-weight: normal;
+    font-style: normal;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+}
+
+#body {
+    transform-origin: top left;
+    width: 1220px;
+    height: auto;
+    font-family: "Guruwords";
+}
+
+#body>div {
+    width: 100%;
+    background: url(imgs/background.png) no-repeat;
+}
+
+#account {
+    height: 500px;
+}
+
+#user-avatar {
+    position: absolute;
+    height: 200px;
+    width: 200px;
+    left: 73px;
+    top: 105px;
+    z-index: 1;
+    border-radius: 50%;
+}
+
+#user-name {
+    padding-left: 323px;
+    padding-top: 132px;
+    color: white;
+    font-size: 58px;
+}
+
+#user-uid {
+    position: absolute;
+    left: 462px;
+    top: 224px;
+    color: white;
+    font-size: 39px;
+}
+
+#profile {
+    position: relative;
+    display: grid;
+    grid-template-columns: 267px 267px 267px 267px;
+    column-gap: 16px;
+    row-gap: 15px;
+    margin-top: 190px;
+    left: 52px;
+    width: 1117px;
+    height: 570px;
+}
+
+.value {
+    width: 267px;
+    height: 180px;
+    padding-top: 42px;
+    text-align: center;
+    font-size: 44px;
+    font-weight: 1000;
+}
+
+#character-frame {
+    display: grid;
+    grid-template-columns: 250px 250px 250px 250px;
+    column-gap: 36px;
+    row-gap: 36px;
+    padding-top: 180px;
+    padding-left: 57px;
+    width: 1164px;
+    height: auto;
+}
+
+.character {
+    position: relative;
+    width: 251px;
+    height: 314px;
+}
+
+.char-avatar-frame {
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    overflow: hidden;
+    left: 3px;
+    top: -14px;
+    height: 244px;
+    width: 244px;
+}
+
+.char-avatar {
+    position: absolute;
+    height: 244px;
+}
+
+.char-attr {
+    position: absolute;
+    left: -4px;
+    top: 224px;
+    width: 73px;
+}
+
+.char-name {
+    position: absolute;
+    left: 70px;
+    top: 236px;
+    color: white;
+    font-size: 25px;
+}
+
+#copyright {
+    position: relative;
+    font-size: 24px;
+    font-weight: bold;
+    margin: 0 auto;
+    color: white;
+    text-shadow: 2px 2px 2px black;
+    text-align: center;
+    padding-top: 40px;
+    padding-bottom: 10px;
+}
+
+#copyright .version {
+    color: #d3bc8e;
+    display: inline-block;
+    padding: 0 3px;
+}

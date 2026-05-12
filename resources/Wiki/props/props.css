@@ -1,0 +1,81 @@
+@font-face {
+    font-family: "Guruwords";
+    src: url("../../fonts/Guruwords.ttf");
+    font-weight: normal;
+    font-style: normal;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+}
+
+#body {
+    transform-origin: top left;
+    width: 800px;
+    height: auto;
+    padding: 50px 50px 0 50px;
+    font-family: "Guruwords";
+}
+
+#body>div {
+    width: 100%;
+    background: url(./imgs/props.png) no-repeat;
+}
+
+td {
+    padding: 10px 50px;
+}
+
+#picture {
+    position: relative;
+    left: 267px;
+    width: 166px;
+    height: 223px;
+    overflow: hidden;
+}
+
+#icon {
+    position: absolute;
+    width: 166px;
+}
+
+#name {
+    position: relative;
+    top: 186px;
+    width: 166px;
+    height: 30px;
+    color: black;
+    font-size: 20px;
+    text-align: center;
+    background-color: #ddd;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+}
+
+#info-table {
+    overflow: hidden;
+    margin-top: 30px;
+    border-radius: 0px 15px;
+    border: 1px solid #ddd;
+}
+
+#copyright {
+    position: relative;
+    font-size: 14px;
+    font-weight: bold;
+    margin: 0 auto;
+    color: white;
+    text-shadow: 2px 2px 2px black;
+    text-align: center;
+    padding-top: 40px;
+    padding-bottom: 10px;
+}
+
+#copyright .version {
+    color: #d3bc8e;
+    display: inline-block;
+    padding: 0 3px;
+}

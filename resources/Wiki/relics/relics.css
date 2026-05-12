@@ -1,0 +1,106 @@
+@font-face {
+    font-family: "Guruwords";
+    src: url("../../fonts/Guruwords.ttf");
+    font-weight: normal;
+    font-style: normal;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+}
+
+#body {
+    transform-origin: top left;
+    width: 1890px;
+    height: 1036px;
+    font-family: "Guruwords";
+}
+
+#body>div {
+    width: 100%;
+    background: url(./imgs/relics.png) no-repeat;
+}
+
+#main-box {
+    display: flex;
+    flex-direction: row;
+}
+
+#left {
+    width: 45%;
+}
+
+#avatar {
+    height: 440px;
+}
+
+#avatar img {
+    position: relative;
+    top: 77px;
+    left: 264px;
+    width: 360px;
+    height: 360px;
+    border-radius: 15px 0px;
+}
+
+#name {
+    padding: 40px 0px 0px 44px;
+    height: 150px;
+    color: #474747;
+    text-align: center;
+    font-size: 42px;
+}
+
+#desc-table {
+    position: relative;
+    left: 106px;
+    width: 708px;
+    background-color: #fafafa;
+    border: 3px solid #dadada;
+    border-radius: 15px 0px 15px 0px;
+}
+
+#desc-table td {
+    padding: 0px 30px;
+}
+
+#right {
+    width: 55%;
+}
+
+#data-table {
+    margin: 70px 104px 0px 13px;
+    font-size: 20px;
+    overflow: hidden;
+    border: 1px solid #dadada;
+    border-radius: 15px 0px 15px 0px;
+}
+
+#data-table>table {
+    border: 0px solid #dadada;
+}
+
+#data-table td {
+    padding: 0px 30px;
+}
+
+#copyright {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 22px;
+    font-weight: bold;
+    color: white;
+    text-shadow: 2px 2px 2px black;
+    text-align: center;
+}
+
+#copyright .version {
+    color: #d3bc8e;
+    display: inline-block;
+    padding: 0 3px;
+}
