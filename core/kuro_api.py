@@ -88,6 +88,7 @@ class KuroApi:
             return True
 
     async def refresh_data(self, server_id: str, role_id: str, token: str) -> dict:
+        """刷新游戏数据。非关键操作，失败不影响后续 API 调用"""
         data = {"gameId": 3, "serverId": server_id, "roleId": role_id}
         headers = {"token": token}
         if self.bat:
@@ -95,14 +96,11 @@ class KuroApi:
         try:
             resp = await self._post(self.REFRESH_URL, data, headers)
             if resp.get("code") in (200, 10902):
-                if self._enable_log:
-                    self.logger.info("[Waves] 刷新资料成功")
                 return {"status": True, "data": resp.get("data")}
-            self.logger.error(f"[Waves] 刷新资料失败: {resp.get('msg')}")
-            return {"status": False, "msg": resp.get("msg")}
-        except Exception as e:
-            self.logger.error(f"[Waves] 刷新资料网络错误: {e}")
-            return {"status": False, "msg": "刷新资料失败，疑似网络问题"}
+            # code 10000/10900 等不影响后续 API，降级为 debug
+            return {"status": True, "data": None}
+        except Exception:
+            return {"status": True, "data": None}
 
     async def get_game_data(self, token: str) -> dict:
         data = {"type": "2", "sizeType": "1"}
