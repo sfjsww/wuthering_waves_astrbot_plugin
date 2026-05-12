@@ -75,12 +75,14 @@ class KuroApi:
         data = {"serverId": server_id, "roleId": role_id}
         try:
             resp = await self._post(self.TOKEN_REFRESH_URL, data, {"token": token})
-            if resp.get("code") == 220:
+            if resp.get("code") != 200:
+                if self._enable_log:
+                    self.logger.error(f"[Waves] Token不可用 roleId={role_id} code={resp.get('code')} msg={resp.get('msg')}")
                 return False
             self.bat = json.loads(resp["data"]).get("accessToken")
             return True
         except Exception:
-            return True
+            return True  # 网络错误时宽容处理
 
     async def refresh_data(self, server_id: str, role_id: str, token: str) -> dict:
         data = {"gameId": 3, "serverId": server_id, "roleId": role_id}

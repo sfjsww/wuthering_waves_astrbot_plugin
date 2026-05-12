@@ -62,19 +62,24 @@ class LoginServer:
         result = await self.kuro.get_token(mobile, code)
         if result["status"]:
             token = result["data"]["token"]
-            user_id = result["data"].get("userId", "")
+            user_id = str(result["data"].get("userId", ""))
             qq_id = self._pending_logins[login_id].get("qq_id", "")
             server_id = "76402e5b20be2c39f095a152090afddc"  # 默认国服
-            # 立即用 token 调用 requestToken 获取 bat，确保 token 已激活
+            # 通过 get_game_data 获取正确的游戏 roleId
+            role_id = user_id
             try:
-                ok = await self.kuro.is_available(server_id, str(user_id), token)
-                self.logger.info(f"[Waves] Token激活结果: {ok}, bat={self.kuro.bat[:20] if self.kuro.bat else 'None'}...")
+                gd = await self.kuro._post('/gamer/widget/game3/refresh',
+                    {'type': '2', 'sizeType': '1'}, {'token': token})
+                if gd.get('code') == 200 and gd.get('data'):
+                    role_id = str(gd['data'].get('roleId', user_id))
+                    role_name = gd['data'].get('roleName', '')
+                    self.logger.info(f"[Waves] 发现角色: roleId={role_id} name={role_name}")
             except Exception as e:
-                self.logger.error(f"[Waves] Token激活失败: {e}")
+                self.logger.error(f"[Waves] 获取角色失败: {e}")
             account = {
                 "serverId": server_id,
-                "roleId": str(user_id),
-                "userId": str(user_id),
+                "roleId": role_id,
+                "userId": user_id,
                 "token": token,
             }
             tokens = self.config_mgr.get_user_tokens(qq_id)
