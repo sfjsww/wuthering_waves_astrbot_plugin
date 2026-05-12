@@ -2,6 +2,7 @@
 import json
 import random
 import string
+import uuid
 from datetime import datetime
 import aiohttp
 
@@ -31,6 +32,9 @@ class KuroApi:
         self.config_mgr = config_mgr
         self.logger = logger
         self.bat = None
+        self._session = None
+        self._distinct_id = str(uuid.uuid4())
+        self._dev_code = ''.join(random.choices('0123456789ABCDEF', k=40))
 
     @property
     def _reverse_url(self) -> str:
@@ -46,15 +50,32 @@ class KuroApi:
 
     @property
     def _base_headers(self) -> dict:
-        return {"source": "ios"}
+        return {
+            "source": "android",
+            "version": "2.2.0",
+            "versionCode": "2200",
+            "osVersion": "Android",
+            "distinct_id": self._distinct_id,
+            "countryCode": "CN",
+            "model": "23127PN0CC",
+            "lang": "zh-Hans",
+            "channelId": "2",
+            "devCode": self._dev_code,
+        }
+
+    async def _get_session(self) -> aiohttp.ClientSession:
+        if self._session is None or self._session.closed:
+            self._session = aiohttp.ClientSession()
+        return self._session
 
     async def _post(self, url: str, data: dict, headers: dict | None = None) -> dict:
+        """统一 POST 请求，复用 session 保持 cookie"""
         full_url = url if url.startswith("http") else self._reverse_url + url
         all_headers = {**self._base_headers, **(headers or {})}
-        async with aiohttp.ClientSession() as session:
-            async with session.post(full_url, data=data, headers=all_headers,
-                                     proxy=self._proxy) as resp:
-                return await resp.json()
+        session = await self._get_session()
+        async with session.post(full_url, data=data, headers=all_headers,
+                                 proxy=self._proxy) as resp:
+            return await resp.json()
 
     async def get_token(self, mobile: str, code: str) -> dict:
         dev_code = "".join(random.choices(string.ascii_uppercase + string.digits, k=40))
@@ -281,3 +302,9 @@ class KuroApi:
             return {"status": False, "msg": resp.get("msg")}
         except Exception as e:
             return {"status": False, "msg": str(e)}
+
+    async def close(self):
+        """关闭 HTTP session"""
+        if self._session and not self._session.closed:
+            await self._session.close()
+
