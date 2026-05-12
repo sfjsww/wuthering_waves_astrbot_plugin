@@ -26,7 +26,8 @@ class Render:
         layout_path = self.resources_dir / "common" / "layout"
         scale = min(2, max(0.5, self.config_mgr.get_config().get("render_scale", 100) / 100))
 
-        html_file = template_path / "index.html"
+        # 模板文件命名规则: Template/<name>/<name>.html
+        html_file = template_path / f"{template_name}.html"
         if not html_file.exists():
             raise FileNotFoundError(f"模板不存在: {html_file}")
         html_content = html_file.read_text(encoding="utf-8")

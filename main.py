@@ -63,7 +63,7 @@ class WavesPlugin(Star):
         '''查询鸣潮活动日历和当前卡池信息。无需登录。'''
         data = await self.kuro.get_event_list()
         if data["status"]:
-            img = await self.render.render("calendar/calendar", {"data": data["data"]})
+            img = await self.render.render("calendar", {"data": data["data"]})
             yield event.image_result(img)
         else:
             yield event.plain_result(data["msg"])
@@ -253,7 +253,7 @@ class WavesPlugin(Star):
                 continue
             from core.calculator import WeightCalculator
             dt["data"] = WeightCalculator(dt["data"], self.render.resources_dir).calculate()
-            img = await self.render.render("charProfile/charProfile", {
+            img = await self.render.render("charProfile", {
                 "uid": ac["roleId"],
                 "rolePicUrl": dt["data"]["role"].get("rolePicUrl", ""),
                 "roleDetail": dt["data"],
@@ -278,7 +278,7 @@ class WavesPlugin(Star):
             return
         d = await self.kuro.get_base_data(ac["serverId"], ac["roleId"], ac["token"])
         if d["status"]:
-            img = await self.render.render("userInfo/userInfo", {"data": d["data"]})
+            img = await self.render.render("userInfo", {"data": d["data"]})
             yield event.image_result(img)
         else:
             yield event.plain_result(d["msg"])
@@ -300,7 +300,7 @@ class WavesPlugin(Star):
             return
         d = await self.kuro.get_calabash_data(ac["serverId"], ac["roleId"], ac["token"])
         if d["status"]:
-            img = await self.render.render("calaBash/calaBash", {"data": d["data"]})
+            img = await self.render.render("calaBash", {"data": d["data"]})
             yield event.image_result(img)
         else:
             yield event.plain_result(d["msg"])
@@ -322,7 +322,7 @@ class WavesPlugin(Star):
             return
         d = await self.kuro.get_challenge_data(ac["serverId"], ac["roleId"], ac["token"])
         if d["status"]:
-            img = await self.render.render("challengeDetails/challengeDetails", {"data": d["data"]})
+            img = await self.render.render("challengeDetails", {"data": d["data"]})
             yield event.image_result(img)
         else:
             yield event.plain_result(d["msg"])
@@ -344,7 +344,7 @@ class WavesPlugin(Star):
             return
         d = await self.kuro.get_explore_data(ac["serverId"], ac["roleId"], ac["token"])
         if d["status"]:
-            img = await self.render.render("exploreIndex/exploreIndex", {"data": d["data"]})
+            img = await self.render.render("exploreIndex", {"data": d["data"]})
             yield event.image_result(img)
         else:
             yield event.plain_result(d["msg"])
@@ -366,7 +366,7 @@ class WavesPlugin(Star):
             return
         d = await self.kuro.get_tower_data(ac["serverId"], ac["roleId"], ac["token"])
         if d["status"]:
-            img = await self.render.render("towerData/towerData", {"data": d["data"]})
+            img = await self.render.render("towerData", {"data": d["data"]})
             yield event.image_result(img)
         else:
             yield event.plain_result(d["msg"])
@@ -397,7 +397,7 @@ class WavesPlugin(Star):
         if not valid:
             yield event.plain_result("未展示任何角色")
             return
-        img = await self.render.render("training/training", {"roleData": rd["data"], "roleDetails": valid})
+        img = await self.render.render("training", {"roleData": rd["data"], "roleDetails": valid})
         yield event.image_result(img)
 
     @filter.llm_tool(name="query_waves_gacha_records")
@@ -420,7 +420,7 @@ class WavesPlugin(Star):
         q = {"serverId": ac["serverId"], "playerId": ac["roleId"], "cardPoolType": pool_map.get(card_pool_type, 0), "languageCode": "zh-Hans"}
         d = await self.kuro.get_gacha(q)
         if d["status"]:
-            img = await self.render.render("gacha/gacha", {"gachaData": d["data"]})
+            img = await self.render.render("gacha", {"gachaData": d["data"]})
             yield event.image_result(img)
         else:
             yield event.plain_result(d["msg"])
@@ -439,7 +439,7 @@ class WavesPlugin(Star):
         ac = tokens[0]
         d = await self.kuro.get_game_data(ac["token"])
         if d["status"]:
-            img = await self.render.render("dailyData/dailyData", {"data": d["data"]})
+            img = await self.render.render("dailyData", {"data": d["data"]})
             yield event.image_result(img)
         else:
             yield event.plain_result(d["msg"])
@@ -477,7 +477,7 @@ class WavesPlugin(Star):
             rc = await self.kuro.query_record(ac["serverId"], ac["roleId"], ac["token"])
             if rc["status"]:
                 rc["data"] = rc["data"][:50]
-                img = await self.render.render("queryRecord/queryRecord", {"listData": rc["data"]})
+                img = await self.render.render("queryRecord", {"listData": rc["data"]})
                 yield event.image_result(img)
             else:
                 yield event.plain_result(rc["msg"])
@@ -502,7 +502,7 @@ class WavesPlugin(Star):
         if action == "list":
             d = await self.kuro.get_game_data(ac["token"])
             if d["status"]:
-                img = await self.render.render("taskList/taskList", {"data": d["data"]})
+                img = await self.render.render("taskList", {"data": d["data"]})
                 yield event.image_result(img)
             else:
                 yield event.plain_result(d["msg"])
