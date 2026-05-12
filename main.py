@@ -24,7 +24,7 @@ class WavesPlugin(Star):
         if config is None:
             config = {}
         self.astrbot_config = config
-        self.data_dir = get_astrbot_data_path() / "plugin_data" / "wuthering_waves_astrbot_plugin"
+        self.data_dir = Path(get_astrbot_data_path()) / "plugin_data" / "wuthering_waves_astrbot_plugin"
         self.data_dir.mkdir(parents=True, exist_ok=True)
 
         # Defer imports to avoid import errors before AstrBot is fully loaded
