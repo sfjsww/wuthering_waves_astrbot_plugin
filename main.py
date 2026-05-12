@@ -1,6 +1,11 @@
 """鸣潮插件 AstrBot 主入口 - 注册 24 个 LLM Tools + 4 个后台定时任务"""
-import asyncio
+import sys
 from pathlib import Path
+
+# 将插件目录加入 Python 路径，确保 core/ 和 tools/ 模块可导入
+sys.path.insert(0, str(Path(__file__).parent))
+
+import asyncio
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from astrbot.api.event import filter
