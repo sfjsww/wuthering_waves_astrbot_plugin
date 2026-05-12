@@ -589,13 +589,20 @@ class WavesPlugin(Star):
 
     @filter.llm_tool(name="waves_get_token")
     async def waves_get_token(self, event: AstrMessageEvent):
-        '''查看已绑定的鸣潮账号信息。'''
+        '''查看已绑定的鸣潮账号信息，包括完整Token。'''
         tokens = self.config_mgr.get_user_tokens(event.get_sender_id())
         if not tokens:
-            yield event.plain_result("没有绑定的账号。")
+            yield event.plain_result("当前没有绑定任何鸣潮账号。请先使用「登录」功能绑定账号。")
             return
-        info = [f"UID: {t.get('roleId', '?')} | 服务器: {t.get('serverId', '?')[:8]}..." for t in tokens]
-        yield event.plain_result("已绑定账号：\n" + "\n".join(info))
+        lines = []
+        for i, t in enumerate(tokens, 1):
+            lines.append(f"账号{i}:")
+            lines.append(f"  UID: {t.get('roleId', '?')}")
+            lines.append(f"  库街区ID: {t.get('userId', '?')}")
+            lines.append(f"  服务器: 国服")
+            lines.append(f"  Token: {t.get('token', '无')}")
+            lines.append("")
+        yield event.plain_result("\n".join(lines))
 
     @filter.llm_tool(name="waves_update_settings")
     async def waves_update_settings(self, event: AstrMessageEvent, setting: str, enabled: bool, threshold: int = None):
