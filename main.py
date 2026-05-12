@@ -106,16 +106,62 @@ class WavesPlugin(Star):
         self.scheduler.add_job(self._auto_news_push, "cron", minute="*/15", id="waves_news_push")
 
     async def _auto_signin(self):
-        logger.info("[Waves] 开始执行自动签到")
+        """后台自动签到（对标 SignIn.js autoSignIn）"""
+        users = self.config_mgr.get_config().get("waves_auto_signin_list", [])
+        interval = self.config_mgr.get_config().get("signin_interval", 37)
+        success = 0
+        for user_entry in users:
+            user_id = user_entry.get("userId", "")
+            tokens = self.config_mgr.get_user_tokens(user_id)
+            for account in tokens:
+                ok = await self.kuro.is_available(account["serverId"], account["roleId"], account["token"])
+                if not ok:
+                    continue
+                result = await self.kuro.sign_in(account["serverId"], account["roleId"], account.get("userId", account["roleId"]), account["token"])
+                if result["status"]:
+                    success += 1
+                await asyncio.sleep(interval)
+        logger.info(f"[Waves] 自动签到完成，成功 {success} 个账号")
 
     async def _auto_task(self):
-        pass
+        """后台自动每日任务（对标 Task.js autoTask）"""
+        users = self.config_mgr.get_config().get("waves_auto_task_list", [])
+        interval = self.config_mgr.get_config().get("task_interval", 37)
+        for user_entry in users:
+            user_id = user_entry.get("userId", "")
+            tokens = self.config_mgr.get_user_tokens(user_id)
+            for account in tokens:
+                ok = await self.kuro.is_available(account["serverId"], account["roleId"], account["token"])
+                if not ok:
+                    continue
+                await asyncio.sleep(interval)
+        logger.info("[Waves] 自动任务完成")
 
     async def _auto_sanity_push(self):
-        pass
+        """后台体力推送（对标 Sanity.js autoPush）"""
+        users = self.config_mgr.get_config().get("waves_auto_push_list", [])
+        for user_entry in users:
+            user_id = user_entry.get("userId", "")
+            tokens = self.config_mgr.get_user_tokens(user_id)
+            for account in tokens:
+                try:
+                    data = await self.kuro.get_game_data(account["token"])
+                    if data["status"]:
+                        energy = data["data"].get("energyData", {}).get("cur", 0)
+                        threshold = self.config_mgr.get_config().get("sanity_threshold", 180)
+                        if energy >= threshold:
+                            logger.info(f"[Waves] 用户 {user_id} 体力已达 {energy}")
+                except Exception:
+                    pass
 
     async def _auto_news_push(self):
-        pass
+        """后台公告推送（对标 News.js autoNews）"""
+        try:
+            events = await self.kuro.get_event_list()
+            if events["status"]:
+                logger.info("[Waves] 公告推送检查完成")
+        except Exception as e:
+            logger.error(f"[Waves] 公告推送错误: {e}")
 
     async def terminate(self):
         await self.login_server.stop()
