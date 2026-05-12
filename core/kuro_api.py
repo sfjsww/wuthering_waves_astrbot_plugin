@@ -87,8 +87,7 @@ class KuroApi:
     async def refresh_data(self, server_id: str, role_id: str, token: str) -> dict:
         data = {"gameId": 3, "serverId": server_id, "roleId": role_id}
         headers = {"token": token}
-        if self.bat:
-            headers["b-at"] = self.bat
+        headers["b-at"] = self.bat or ""
         try:
             resp = await self._post(self.REFRESH_URL, data, headers)
             if resp.get("code") in (200, 10902):
@@ -104,8 +103,7 @@ class KuroApi:
     async def get_game_data(self, token: str) -> dict:
         data = {"type": "2", "sizeType": "1"}
         headers = {"token": token}
-        if self.bat:
-            headers["b-at"] = self.bat
+        headers["b-at"] = self.bat or ""
         try:
             resp = await self._post(self.GAME_DATA_URL, data, headers)
             if resp.get("code") == 200:
@@ -121,8 +119,7 @@ class KuroApi:
         await self.refresh_data(server_id, role_id, token)
         data = {"gameId": 3, "serverId": server_id, "roleId": role_id}
         headers = {"token": token}
-        if self.bat:
-            headers["b-at"] = self.bat
+        headers["b-at"] = self.bat or ""
         try:
             resp = await self._post(self.BASE_DATA_URL, data, headers)
             if resp.get("code") in (200, 10902):
@@ -139,8 +136,7 @@ class KuroApi:
         await self.refresh_data(server_id, role_id, token)
         data = {"gameId": 3, "serverId": server_id, "roleId": role_id}
         headers = {"token": token}
-        if self.bat:
-            headers["b-at"] = self.bat
+        headers["b-at"] = self.bat or ""
         try:
             resp = await self._post(self.ROLE_DATA_URL, data, headers)
             if resp.get("code") in (200, 10902):
@@ -157,8 +153,7 @@ class KuroApi:
         await self.refresh_data(server_id, role_id, token)
         data = {"serverId": server_id, "roleId": role_id, "id": role_detail_id}
         headers = {"token": token}
-        if self.bat:
-            headers["b-at"] = self.bat
+        headers["b-at"] = self.bat or ""
         try:
             resp = await self._post(self.ROLE_DETAIL_URL, data, headers)
             if resp.get("code") in (200, 10902):
@@ -175,8 +170,7 @@ class KuroApi:
         await self.refresh_data(server_id, role_id, token)
         data = {"gameId": 3, "serverId": server_id, "roleId": role_id, **(extra_data or {})}
         headers = {"token": token}
-        if self.bat:
-            headers["b-at"] = self.bat
+        headers["b-at"] = self.bat or ""
         try:
             resp = await self._post(url, data, headers)
             if resp.get("code") in (200, 10902):
@@ -224,8 +218,7 @@ class KuroApi:
         month = datetime.now().strftime("%m")
         data = {"gameId": 3, "serverId": server_id, "roleId": role_id, "userId": user_id, "reqMonth": month}
         headers = {"token": token, "devcode": ""}
-        if self.bat:
-            headers["b-at"] = self.bat
+        headers["b-at"] = self.bat or ""
         try:
             resp = await self._post(self.SIGNIN_URL, data, headers)
             if resp.get("code") == 200:
@@ -241,8 +234,7 @@ class KuroApi:
         await self.refresh_data(server_id, role_id, token)
         data = {"gameId": 3, "serverId": server_id, "roleId": role_id}
         headers = {"token": token}
-        if self.bat:
-            headers["b-at"] = self.bat
+        headers["b-at"] = self.bat or ""
         try:
             resp = await self._post(self.QUERY_RECORD_URL, data, headers)
             if resp.get("code") == 200:
@@ -269,8 +261,7 @@ class KuroApi:
     async def get_event_list(self, event_type: int = 0) -> dict:
         data = {"gameId": 3, "eventType": event_type}
         headers = {}
-        if self.bat:
-            headers["b-at"] = self.bat
+        headers["b-at"] = self.bat or ""
         try:
             resp = await self._post(self.EVENT_LIST_URL, data, headers)
             if resp.get("code") == 200:
