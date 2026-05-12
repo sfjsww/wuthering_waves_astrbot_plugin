@@ -1,7 +1,8 @@
 """query_waves_news - 对标 apps/News.js"""
 from astrbot.api.event import filter, AstrMessageEvent
 
-def register_news_tool(plugin):
+
+class NewsMixin:
     @filter.llm_tool(name="query_waves_news")
     async def query_waves_news(self, event: AstrMessageEvent, news_type: str = ""):
         '''查询鸣潮最新游戏公告和活动资讯。
@@ -11,7 +12,7 @@ def register_news_tool(plugin):
         '''
         type_map = {"活动": 1, "资讯": 2, "公告": 3}
         event_type = type_map.get(news_type, 0)
-        data = await plugin.kuro.get_event_list(event_type)
+        data = await self.kuro.get_event_list(event_type)
         if data["status"]:
             items = data["data"].get("list", [])[:20]
             if not items:
@@ -41,4 +42,3 @@ def register_news_tool(plugin):
             yield event.plain_result(f"【{type_label}资讯】共{len(lines)}条:\n\n" + "\n---\n".join(lines))
         else:
             yield event.plain_result(data["msg"])
-    plugin.register_tool("query_waves_news", query_waves_news, "_tool_news")

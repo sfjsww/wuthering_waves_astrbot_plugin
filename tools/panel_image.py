@@ -1,13 +1,18 @@
 """waves_manage_panel_image - 对标 apps/imgUpload.js"""
 from astrbot.api.event import filter, AstrMessageEvent
-from pathlib import Path
-import shutil
 
-def register_panel_image_tool(plugin):
+
+class PanelImageMixin:
     @filter.llm_tool(name="waves_manage_panel_image")
     async def waves_manage_panel_image(self, event: AstrMessageEvent, action: str, character: str = "", index: int = 0):
-        '''管理角色面板图。Args: action(string): "upload"/"list"/"original"/"delete", character(string): 角色名, index(int, optional): 删除时的序号'''
-        role_pic_dir = plugin.render.resources_dir / "rolePic"
+        '''管理角色面板图。
+
+        Args:
+            action(string): "upload"/"list"/"original"/"delete"
+            character(string): 角色名
+            index(int, optional): 删除时的序号
+        '''
+        role_pic_dir = self.render.resources_dir / "rolePic"
         if action == "list":
             if character:
                 char_dir = role_pic_dir / character
@@ -25,4 +30,3 @@ def register_panel_image_tool(plugin):
             yield event.plain_result("删除功能需要管理员权限。")
         else:
             yield event.plain_result("请指定 action: upload / list / original / delete")
-    plugin.register_tool("waves_manage_panel_image", waves_manage_panel_image, "_tool_panel_image")

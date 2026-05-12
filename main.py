@@ -1,4 +1,4 @@
-"""鸣潮插件 AstrBot 主入口 - 注册 24 个 LLM Tools + 4 个后台定时任务"""
+"""鸣潮插件 AstrBot 主入口 - 继承 25 个 Mixin 提供 LLM Tools + 4 个后台定时任务"""
 import sys
 from pathlib import Path
 
@@ -13,6 +13,32 @@ from astrbot.api.star import Context, Star, register
 from astrbot.api import logger, AstrBotConfig
 from astrbot.core.utils.astrbot_path import get_astrbot_data_path
 
+from tools.calendar import CalendarMixin
+from tools.news import NewsMixin
+from tools.reward import RewardMixin
+from tools.emoji import EmojiMixin
+from tools.guide import GuideMixin
+from tools.strategy import StrategyMixin
+from tools.simulate_gacha import SimulateGachaMixin
+from tools.help import HelpMixin
+from tools.update import UpdateMixin
+from tools.character import CharacterMixin
+from tools.user_info import UserInfoMixin
+from tools.data_dock import DataDockMixin
+from tools.challenge import ChallengeMixin
+from tools.exploration import ExplorationMixin
+from tools.tower import TowerMixin
+from tools.training import TrainingMixin
+from tools.sanity import SanityMixin
+from tools.gacha import GachaMixin
+from tools.signin import SigninMixin
+from tools.daily_task import DailyTaskMixin
+from tools.account import AccountMixin
+from tools.settings import SettingsMixin
+from tools.alias import AliasMixin
+from tools.panel_image import PanelImageMixin
+from tools.admin import AdminMixin
+
 RESOURCES_DIR = Path(__file__).parent / "resources"
 
 
@@ -23,7 +49,15 @@ RESOURCES_DIR = Path(__file__).parent / "resources"
     "1.0.0",
     "https://github.com/sfjsww/wuthering_waves_astrbot_plugin"
 )
-class WavesPlugin(Star):
+class WavesPlugin(
+    CalendarMixin, NewsMixin, RewardMixin, EmojiMixin,
+    GuideMixin, StrategyMixin, SimulateGachaMixin, HelpMixin, UpdateMixin,
+    CharacterMixin, UserInfoMixin, DataDockMixin, ChallengeMixin,
+    ExplorationMixin, TowerMixin, TrainingMixin, SanityMixin, GachaMixin,
+    SigninMixin, DailyTaskMixin, AccountMixin, SettingsMixin, AliasMixin,
+    PanelImageMixin, AdminMixin,
+    Star,
+):
     def __init__(self, context: Context, config: AstrBotConfig = None):
         super().__init__(context)
         if config is None:
@@ -45,66 +79,11 @@ class WavesPlugin(Star):
         self.render = Render(RESOURCES_DIR, self.config_mgr)
         self.login_server = LoginServer(self.config_mgr, self.kuro, RESOURCES_DIR, logger)
 
-        self._register_all_tools()
-
         asyncio.create_task(self.login_server.start())
         self.scheduler = AsyncIOScheduler()
         self._setup_cron_jobs()
         self.scheduler.start()
-        logger.info("[Waves] 鸣潮插件初始化完成，24 个 Tools 已注册")
-
-    def _register_all_tools(self):
-        from tools.character import register_character_tool
-        from tools.user_info import register_user_info_tool
-        from tools.data_dock import register_data_dock_tool
-        from tools.challenge import register_challenge_tool
-        from tools.exploration import register_exploration_tool
-        from tools.tower import register_tower_tool
-        from tools.training import register_training_tool
-        from tools.gacha import register_gacha_tools
-        from tools.sanity import register_sanity_tool
-        from tools.guide import register_guide_tool
-        from tools.strategy import register_strategy_tool
-        from tools.calendar import register_calendar_tool
-        from tools.news import register_news_tool
-        from tools.reward import register_reward_tool
-        from tools.emoji import register_emoji_tool
-        from tools.signin import register_signin_tool
-        from tools.daily_task import register_daily_task_tool
-        from tools.simulate_gacha import register_simulate_gacha_tool
-        from tools.account import register_account_tools
-        from tools.settings import register_settings_tool
-        from tools.alias import register_alias_tool
-        from tools.panel_image import register_panel_image_tool
-        from tools.admin import register_admin_tool
-        from tools.help import register_help_tool
-        from tools.update import register_update_tool
-
-        register_character_tool(self)
-        register_user_info_tool(self)
-        register_data_dock_tool(self)
-        register_challenge_tool(self)
-        register_exploration_tool(self)
-        register_tower_tool(self)
-        register_training_tool(self)
-        register_gacha_tools(self)
-        register_sanity_tool(self)
-        register_guide_tool(self)
-        register_strategy_tool(self)
-        register_calendar_tool(self)
-        register_news_tool(self)
-        register_reward_tool(self)
-        register_emoji_tool(self)
-        register_signin_tool(self)
-        register_daily_task_tool(self)
-        register_simulate_gacha_tool(self)
-        register_account_tools(self)
-        register_settings_tool(self)
-        register_alias_tool(self)
-        register_panel_image_tool(self)
-        register_admin_tool(self)
-        register_help_tool(self)
-        register_update_tool(self)
+        logger.info("[Waves] 鸣潮插件初始化完成，25 个 Mixin 已加载")
 
     def _setup_cron_jobs(self):
         self.scheduler.add_job(self._auto_signin, "cron", hour=0, minute=10, id="waves_auto_signin")
@@ -175,8 +154,3 @@ class WavesPlugin(Star):
         if self.scheduler.running:
             self.scheduler.shutdown(wait=False)
         logger.info("[Waves] 鸣潮插件已卸载")
-
-    def register_tool(self, tool_name: str, handler, method_name: str):
-        """通过装饰器方式注册单个 LLM Tool"""
-        decorator = filter.llm_tool(name=tool_name)(handler)
-        setattr(self, method_name, decorator.__get__(self, type(self)))
