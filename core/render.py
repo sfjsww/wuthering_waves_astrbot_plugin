@@ -1,67 +1,76 @@
-"""HTML -> 图片渲染模块 - 对标原项目 components/Render.js"""
+"""HTML → 图片渲染模块 — 通过 Node.js worker 复用原插件 art-template + Puppeteer 管线"""
+import asyncio
+import json
 import time
 from pathlib import Path
 
-_browser = None
-_time_counter: dict[str, int] = {}
-
-
-def _get_save_id(name: str) -> str:
-    if name not in _time_counter:
-        _time_counter[name] = 0
-    _time_counter[name] += 1
-    return f"{name}_{_time_counter[name]}"
-
 
 class Render:
-    """Playwright HTML 渲染器"""
+    """渲染器，对标原项目 components/Render.js"""
 
     def __init__(self, resources_dir: Path, config_mgr):
         self.resources_dir = resources_dir
         self.config_mgr = config_mgr
+        self._proc = None
+        self._lock = asyncio.Lock()
+        self._time_counter: dict[str, int] = {}
+        self._worker_script = Path(__file__).parent.parent / "render_worker.js"
+
+    def _get_save_id(self, name: str) -> str:
+        if name not in self._time_counter:
+            self._time_counter[name] = 0
+        self._time_counter[name] += 1
+        return f"{name}_{self._time_counter[name]}"
+
+    async def _ensure_worker(self):
+        if self._proc is not None and self._proc.returncode is not None:
+            self._proc = None
+        if self._proc is None:
+            self._proc = await asyncio.create_subprocess_exec(
+                "node", str(self._worker_script),
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
 
     async def render(self, template_name: str, params: dict) -> str:
-        """渲染 HTML 模板并返回图片路径"""
-        template_path = self.resources_dir / "Template" / template_name
-        layout_path = self.resources_dir / "common" / "layout"
-        scale = min(2, max(0.5, self.config_mgr.get_config().get("render_scale", 100) / 100))
+        """渲染 HTML 模板并返回图片路径。
+        对标原项目 Render.render(path, params, cfg) 的 beforeRender 逻辑。
+        """
+        scale = min(2.0, max(0.5, self.config_mgr.get_config().get("render_scale", 100) / 100))
 
-        # 模板文件命名规则: Template/<name>/<name>.html
-        html_file = template_path / f"{template_name}.html"
-        if not html_file.exists():
-            raise FileNotFoundError(f"模板不存在: {html_file}")
-        html_content = html_file.read_text(encoding="utf-8")
+        request = {
+            "template": template_name,
+            "params": dict(params),
+            "resources_dir": str(self.resources_dir),
+            "saveId": self._get_save_id(params.get("saveId", template_name)),
+            "scale": scale,
+        }
 
-        html_content = html_content.replace("{{pluginResources}}", str(self.resources_dir))
-        html_content = html_content.replace("{{_res_path}}", str(template_path))
-        html_content = html_content.replace("{{_layout_path}}", str(layout_path) + "/")
-        html_content = html_content.replace("{{defaultLayout}}", f"{layout_path}/default.html")
-        html_content = html_content.replace("{{elemLayout}}", f"{layout_path}/elem.html")
+        async with self._lock:
+            last_err = None
+            for attempt in range(3):
+                try:
+                    await self._ensure_worker()
+                    self._proc.stdin.write((json.dumps(request, ensure_ascii=False) + "\n").encode())
+                    await self._proc.stdin.drain()
+                    resp_line = await asyncio.wait_for(self._proc.stdout.readline(), timeout=45.0)
+                    resp = json.loads(resp_line.decode())
+                    if resp.get("status") == "ok":
+                        return resp["path"]
+                    last_err = resp.get("error", "未知渲染错误")
+                except (BrokenPipeError, ConnectionResetError, OSError, asyncio.TimeoutError) as e:
+                    self._proc = None
+                    last_err = str(e)
+                    if attempt < 2:
+                        await asyncio.sleep(0.5)
 
-        save_id = _get_save_id(params.get("saveId", template_name))
-        html_content = html_content.replace("{{saveId}}", save_id)
+        raise RuntimeError(f"渲染失败: {last_err}")
 
-        import json
-        for key, value in params.items():
-            if isinstance(value, (dict, list)):
-                html_content = html_content.replace(f"{{{{{key}}}}}", json.dumps(value, ensure_ascii=False))
-            else:
-                html_content = html_content.replace(f"{{{{{key}}}}}", str(value))
-
-        from playwright.async_api import async_playwright
-        global _browser
-        if _browser is None:
-            p = await async_playwright().start()
-            _browser = await p.chromium.launch(headless=True)
-
-        page = await _browser.new_page(viewport={"width": 800, "height": 600})
-        await page.set_content(html_content, wait_until="networkidle")
-        await page.evaluate(f"document.body.style.transform = 'scale({scale})'")
-
-        output_dir = Path("/tmp/waves_render")
-        output_dir.mkdir(exist_ok=True)
-        output_file = output_dir / f"{template_name.replace('/', '_')}_{int(time.time())}.png"
-        await page.screenshot(path=str(output_file), full_page=True)
-        await page.close()
-
-        return str(output_file)
+    async def close(self):
+        if self._proc is not None:
+            try: self._proc.stdin.close()
+            except Exception: pass
+            try: await asyncio.wait_for(self._proc.wait(), timeout=3.0)
+            except asyncio.TimeoutError: self._proc.kill(); await self._proc.wait()
+            self._proc = None

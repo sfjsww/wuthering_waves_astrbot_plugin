@@ -75,7 +75,11 @@ class KuroApi:
         session = await self._get_session()
         async with session.post(full_url, data=data, headers=all_headers,
                                  proxy=self._proxy) as resp:
-            return await resp.json()
+            text = await resp.text()
+            try:
+                return json.loads(text)
+            except Exception:
+                return {"code": -1, "message": f"API响应异常: {text[:200]}"}
 
     async def get_token(self, mobile: str, code: str) -> dict:
         dev_code = "".join(random.choices(string.ascii_uppercase + string.digits, k=40))
@@ -111,14 +115,11 @@ class KuroApi:
     async def refresh_data(self, server_id: str, role_id: str, token: str) -> dict:
         """刷新游戏数据。非关键操作，失败不影响后续 API 调用"""
         data = {"gameId": 3, "serverId": server_id, "roleId": role_id}
-        headers = {"token": token}
-        if self.bat:
-            headers["b-at"] = self.bat
+        headers = {"b-at": self.bat} if self.bat else {}
         try:
             resp = await self._post(self.REFRESH_URL, data, headers)
             if resp.get("code") in (200, 10902):
                 return {"status": True, "data": resp.get("data")}
-            # code 10000/10900 等不影响后续 API，降级为 debug
             return {"status": True, "data": None}
         except Exception:
             return {"status": True, "data": None}
@@ -126,8 +127,6 @@ class KuroApi:
     async def get_game_data(self, token: str) -> dict:
         data = {"type": "2", "sizeType": "1"}
         headers = {"token": token}
-        if self.bat:
-            headers["b-at"] = self.bat
         try:
             resp = await self._post(self.GAME_DATA_URL, data, headers)
             if resp.get("code") == 200:
@@ -142,9 +141,7 @@ class KuroApi:
     async def get_base_data(self, server_id: str, role_id: str, token: str) -> dict:
         await self.refresh_data(server_id, role_id, token)
         data = {"gameId": 3, "serverId": server_id, "roleId": role_id}
-        headers = {"token": token}
-        if self.bat:
-            headers["b-at"] = self.bat
+        headers = {"b-at": self.bat} if self.bat else {}
         try:
             resp = await self._post(self.BASE_DATA_URL, data, headers)
             if resp.get("code") in (200, 10902):
@@ -160,9 +157,7 @@ class KuroApi:
     async def get_role_data(self, server_id: str, role_id: str, token: str) -> dict:
         await self.refresh_data(server_id, role_id, token)
         data = {"gameId": 3, "serverId": server_id, "roleId": role_id}
-        headers = {"token": token}
-        if self.bat:
-            headers["b-at"] = self.bat
+        headers = {"b-at": self.bat} if self.bat else {}
         try:
             resp = await self._post(self.ROLE_DATA_URL, data, headers)
             if resp.get("code") in (200, 10902):
@@ -178,9 +173,7 @@ class KuroApi:
     async def get_role_detail(self, server_id: str, role_id: str, role_detail_id: str, token: str) -> dict:
         await self.refresh_data(server_id, role_id, token)
         data = {"serverId": server_id, "roleId": role_id, "id": role_detail_id}
-        headers = {"token": token}
-        if self.bat:
-            headers["b-at"] = self.bat
+        headers = {"b-at": self.bat} if self.bat else {}
         try:
             resp = await self._post(self.ROLE_DETAIL_URL, data, headers)
             if resp.get("code") in (200, 10902):
@@ -196,9 +189,7 @@ class KuroApi:
     async def _query_section(self, url: str, server_id: str, role_id: str, token: str, extra_data: dict = None, check_open: bool = True) -> dict:
         await self.refresh_data(server_id, role_id, token)
         data = {"gameId": 3, "serverId": server_id, "roleId": role_id, **(extra_data or {})}
-        headers = {"token": token}
-        if self.bat:
-            headers["b-at"] = self.bat
+        headers = {"b-at": self.bat} if self.bat else {}
         try:
             resp = await self._post(url, data, headers)
             if resp.get("code") in (200, 10902):
@@ -228,7 +219,7 @@ class KuroApi:
             return result
         try:
             data = {"gameId": 3, "serverId": server_id, "roleId": role_id}
-            headers = {"token": token}
+            headers = {}
             if self.bat:
                 headers["b-at"] = self.bat
             resp = await self._post(self.OTHER_TOWER_DATA_URL, data, headers)
@@ -246,8 +237,6 @@ class KuroApi:
         month = datetime.now().strftime("%m")
         data = {"gameId": 3, "serverId": server_id, "roleId": role_id, "userId": user_id, "reqMonth": month}
         headers = {"token": token, "devcode": ""}
-        if self.bat:
-            headers["b-at"] = self.bat
         try:
             resp = await self._post(self.SIGNIN_URL, data, headers)
             if resp.get("code") == 200:
@@ -263,8 +252,6 @@ class KuroApi:
         await self.refresh_data(server_id, role_id, token)
         data = {"gameId": 3, "serverId": server_id, "roleId": role_id}
         headers = {"token": token}
-        if self.bat:
-            headers["b-at"] = self.bat
         try:
             resp = await self._post(self.QUERY_RECORD_URL, data, headers)
             if resp.get("code") == 200:
@@ -276,15 +263,26 @@ class KuroApi:
             return {"status": False, "msg": str(e)}
 
     async def get_gacha(self, query_data: dict) -> dict:
+        """抽卡记录查询 - 对标原项目 Code.js getGaCha。
+        使用 JSON 请求体，仅发送最小请求头（gacha API 独立于库街区 API，不需要 kurobbs 认证头）。
+        """
         is_cn = query_data.get("serverId") == "76402e5b20be2c39f095a152090afddc"
         url = self.GACHA_URL if is_cn else self.INTL_GACHA_URL
         try:
-            resp = await self._post(url, query_data)
-            if resp.get("code") == 0:
-                if resp.get("data") is None:
-                    return {"status": False, "msg": "查询失败，返回空数据"}
-                return {"status": True, "data": resp["data"]}
-            return {"status": False, "msg": resp.get("message")}
+            session = await self._get_session()
+            headers = {"Content-Type": "application/json"}
+            async with session.post(url, json=query_data, headers=headers,
+                                     proxy=self._proxy) as resp:
+                text = await resp.text()
+                try:
+                    result = json.loads(text)
+                except Exception:
+                    return {"status": False, "msg": f"API响应异常: {text[:200]}"}
+                if result.get("code") == 0:
+                    if result.get("data") is None:
+                        return {"status": False, "msg": "查询失败，返回空数据"}
+                    return {"status": True, "data": result["data"]}
+                return {"status": False, "msg": result.get("message", "查询失败")}
         except Exception as e:
             return {"status": False, "msg": str(e)}
 

@@ -5,10 +5,15 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 import asyncio
 import json
+import os
 import random
+import re
 import uuid
 import yaml
 from datetime import datetime
+from urllib.parse import urlparse, parse_qs
+
+import aiohttp
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from astrbot.api.event import filter, AstrMessageEvent
@@ -253,11 +258,11 @@ class WavesPlugin(Star):
                 continue
             from core.calculator import WeightCalculator
             dt["data"] = WeightCalculator(dt["data"], self.render.resources_dir).calculate()
-            img = await self.render.render("charProfile", {
+            img = await self.render.render("charProfile", {"data": {
                 "uid": ac["roleId"],
                 "rolePicUrl": dt["data"]["role"].get("rolePicUrl", ""),
                 "roleDetail": dt["data"],
-            })
+            }})
             yield event.image_result(img)
             return
 
@@ -278,7 +283,7 @@ class WavesPlugin(Star):
             return
         d = await self.kuro.get_base_data(ac["serverId"], ac["roleId"], ac["token"])
         if d["status"]:
-            img = await self.render.render("userInfo", {"data": d["data"]})
+            img = await self.render.render("userInfo", d["data"])
             yield event.image_result(img)
         else:
             yield d["msg"]
@@ -300,7 +305,7 @@ class WavesPlugin(Star):
             return
         d = await self.kuro.get_calabash_data(ac["serverId"], ac["roleId"], ac["token"])
         if d["status"]:
-            img = await self.render.render("calaBash", {"data": d["data"]})
+            img = await self.render.render("calaBash", d["data"])
             yield event.image_result(img)
         else:
             yield d["msg"]
@@ -322,7 +327,7 @@ class WavesPlugin(Star):
             return
         d = await self.kuro.get_challenge_data(ac["serverId"], ac["roleId"], ac["token"])
         if d["status"]:
-            img = await self.render.render("challengeDetails", {"data": d["data"]})
+            img = await self.render.render("challengeDetails", d["data"])
             yield event.image_result(img)
         else:
             yield d["msg"]
@@ -344,7 +349,7 @@ class WavesPlugin(Star):
             return
         d = await self.kuro.get_explore_data(ac["serverId"], ac["roleId"], ac["token"])
         if d["status"]:
-            img = await self.render.render("exploreIndex", {"data": d["data"]})
+            img = await self.render.render("exploreIndex", d["data"])
             yield event.image_result(img)
         else:
             yield d["msg"]
@@ -366,7 +371,7 @@ class WavesPlugin(Star):
             return
         d = await self.kuro.get_tower_data(ac["serverId"], ac["roleId"], ac["token"])
         if d["status"]:
-            img = await self.render.render("towerData", {"data": d["data"]})
+            img = await self.render.render("towerData", d["data"])
             yield event.image_result(img)
         else:
             yield d["msg"]
@@ -402,7 +407,7 @@ class WavesPlugin(Star):
 
     @filter.llm_tool(name="query_waves_gacha_records")
     async def query_waves_gacha_records(self, event: AstrMessageEvent, card_pool_type: str = "", uid: str = None):
-        '''查询鸣潮抽卡记录统计。需要绑定账号。
+        '''查询鸣潮抽卡记录统计。优先从缓存读取，无缓存时引导用户导入。
 
         Args:
             card_pool_type(string, optional): "角色"/"武器"/"常驻角色"/"常驻武器"/"新手"/"自选"
@@ -410,20 +415,53 @@ class WavesPlugin(Star):
         '''
         tokens = await self._get_account(event)
         if not tokens:
-            yield "请先绑定账号。"
+            yield "请先绑定账号，然后使用「导入抽卡记录」导入数据。"
             return
         ac = tokens[0]
-        if not await self.kuro.is_available(ac["serverId"], ac["roleId"], ac["token"]):
-            yield "Token已失效"
+        query_uid = uid or ac.get("roleId", "")
+        cached = self.config_mgr.get_gacha_records(query_uid)
+
+        if not cached:
+            yield f"尚未导入抽卡记录(UID: {query_uid})。请发送 Client.log 文件，然后使用「导入抽卡记录」功能。Client.log 路径: <游戏目录>\\Wuthering Waves\\Wuthering Waves Game\\Client\\Saved\\Logs\\Client.log"
             return
-        pool_map = {"角色": 1, "武器": 2, "常驻角色": 3, "常驻武器": 4, "新手": 5, "自选": 6}
-        q = {"serverId": ac["serverId"], "playerId": ac["roleId"], "cardPoolType": pool_map.get(card_pool_type, 0), "languageCode": "zh-Hans"}
-        d = await self.kuro.get_gacha(q)
-        if d["status"]:
-            img = await self.render.render("gacha", {"gachaData": d["data"]})
+
+        all_records = cached.get("list", [])
+        if not all_records:
+            yield "暂无抽卡记录。"
+            return
+
+        pool_render_map = {1: "upCharPool", 2: "upWpnPool", 3: "stdCharPool", 4: "stdWpnPool", 5: "otherPool", 6: "upCharPool", 7: "otherPool"}
+        pool_reverse = {"角色": 1, "武器": 2, "常驻角色": 3, "常驻武器": 4, "新手": 5, "自选": 6}
+
+        if card_pool_type:
+            tid = pool_reverse.get(card_pool_type, 0)
+            if tid:
+                all_records = [r for r in all_records if r.get("gacha_id") == tid]
+
+        gd = {"playerId": str(query_uid)}
+        total = 0
+        for gid in {r["gacha_id"] for r in all_records}:
+            recs = [r for r in all_records if r["gacha_id"] == gid]
+            pid = pool_render_map.get(gid, "otherPool")
+            gd.setdefault(pid, []).extend(recs)
+        for k in list(gd.keys()):
+            if k == "playerId": continue
+            fmt = await self._format_gacha_pool(gd[k])
+            total += fmt["info"]["total"]
+            gd[k] = fmt
+
+        yield f"抽卡记录: 共{total}抽"
+        try:
+            img = await self.render.render("gacha", {"data": gd})
             yield event.image_result(img)
-        else:
-            yield d["msg"]
+        except Exception:
+            lines = []
+            for pk in ["upCharPool", "upWpnPool", "stdCharPool", "stdWpnPool", "otherPool"]:
+                pd = gd.get(pk)
+                if pd and isinstance(pd, dict) and pd.get("info", {}).get("total", 0) > 0:
+                    pl = {"upCharPool": "角色活动", "upWpnPool": "武器活动", "stdCharPool": "常驻角色", "stdWpnPool": "常驻武器", "otherPool": "其他"}.get(pk, pk)
+                    lines.append(f"{pl}: {pd['info']['total']}抽")
+            yield "\n".join(lines)
 
     @filter.llm_tool(name="query_waves_sanity")
     async def query_waves_sanity(self, event: AstrMessageEvent, uid: str = None):
@@ -439,7 +477,7 @@ class WavesPlugin(Star):
         ac = tokens[0]
         d = await self.kuro.get_game_data(ac["token"])
         if d["status"]:
-            img = await self.render.render("dailyData", {"data": d["data"]})
+            img = await self.render.render("dailyData", d["data"])
             yield event.image_result(img)
         else:
             yield d["msg"]
@@ -477,7 +515,7 @@ class WavesPlugin(Star):
             rc = await self.kuro.query_record(ac["serverId"], ac["roleId"], ac["token"])
             if rc["status"]:
                 rc["data"] = rc["data"][:50]
-                img = await self.render.render("queryRecord", {"listData": rc["data"]})
+                img = await self.render.render("queryRecord", {"data": {"listData": rc["data"]}})
                 yield event.image_result(img)
             else:
                 yield rc["msg"]
@@ -502,7 +540,7 @@ class WavesPlugin(Star):
         if action == "list":
             d = await self.kuro.get_game_data(ac["token"])
             if d["status"]:
-                img = await self.render.render("taskList", {"data": d["data"]})
+                img = await self.render.render("taskList", d["data"])
                 yield event.image_result(img)
             else:
                 yield d["msg"]
@@ -513,11 +551,11 @@ class WavesPlugin(Star):
 
     @filter.llm_tool(name="waves_manage_gacha_records")
     async def waves_manage_gacha_records(self, event: AstrMessageEvent, action: str, data: str = None):
-        '''导入导出抽卡记录。
+        '''导入导出抽卡记录。导入时若不提供data，会自动尝试从聊天记录中获取用户发送的Client.log文件。
 
         Args:
             action(string): "import" / "export"
-            data(string, optional): 导入时提供JSON数据
+            data(string, optional): 导入时提供URL/JSON/Client.log内容/查询参数，留空则自动获取文件
         '''
         if action == "export":
             tokens = await self._get_account(event)
@@ -528,9 +566,19 @@ class WavesPlugin(Star):
             if cached:
                 yield f"抽卡记录导出:\n```json\n{json.dumps(cached, ensure_ascii=False, indent=2)[:4000]}\n```"
             else:
-                yield "暂无缓存记录，请先查询抽卡记录。"
+                yield "暂无缓存记录，请先导入抽卡记录。"
         elif action == "import":
-            yield "导入功能需要先在WebUI中开启 allow_import 配置。"
+            if not data:
+                # 自动从聊天记录抓文件
+                file_result = await self.get_qq_file_content(event)
+                if file_result and file_result.startswith("player_id="):
+                    data = file_result
+                    yield f"已从聊天记录获取抽卡参数: UID={data.split('&')[0].split('=')[1]}"
+                else:
+                    yield file_result
+                    return
+            result = await self._do_import_gacha(event, data)
+            yield result
         else:
             yield "请指定: import / export"
 
@@ -698,6 +746,301 @@ class WavesPlugin(Star):
             yield f"已清理 {cnt} 个失效账号。"
         else:
             yield "请指定: stats / clean_invalid"
+
+    # ===================== 文件获取 + 抽卡导入 =====================
+
+    @filter.llm_tool(name="get_qq_file_content")
+    async def get_qq_file_content(self, event: AstrMessageEvent) -> str:
+        """当用户发送了QQ文件但你收不到内容时调用此工具。它会从聊天记录中找到用户最近发送的文件，通过QQ协议下载并返回文件文本内容。"""
+        user_id = event.get_sender_id()
+        session_id = event.get_session_id()
+
+        # 搜索群聊和私聊历史
+        chat_files = []
+        gid = event.get_group_id()
+        base = Path("/AstrBot/data/chat_history/aiocqhttp")
+        if gid:
+            chat_files.append(base / "group" / f"{gid}.json")
+        chat_files.append(base / "private" / f"{session_id}.json")
+
+        file_msg = None
+        for cf in chat_files:
+            if not cf.exists():
+                continue
+            try:
+                with open(cf, encoding="utf-8") as f:
+                    msgs = json.load(f)
+            except Exception:
+                continue
+            if not isinstance(msgs, list):
+                continue
+            for msg in reversed(msgs):
+                if msg.get("sender", {}).get("user_id") != user_id:
+                    continue
+                for comp in msg.get("message", []):
+                    ot = comp.get("py/object", "")
+                    if "File" in ot:
+                        s = comp.get("py/state", {}).get("__dict__", {})
+                        file_msg = {"name": s.get("name", ""), "url": s.get("url", ""), "mid": msg.get("message_id", "")}
+                        break
+                    if "Reply" in ot:
+                        for sub in comp.get("py/state", {}).get("__dict__", {}).get("chain", []):
+                            if "File" in sub.get("py/object", ""):
+                                ss = sub.get("py/state", {}).get("__dict__", {})
+                                file_msg = {"name": ss.get("name", ""), "url": ss.get("url", ""), "mid": msg.get("message_id", "")}
+                                break
+                if file_msg:
+                    break
+            if file_msg:
+                break
+
+        if not file_msg or not file_msg.get("url"):
+            return "在聊天记录中未找到你发送的文件。请直接复制Client.log内容并使用「导入抽卡记录」功能。"
+
+        file_url = file_msg["url"]
+        content = None
+
+        # 1) 通过平台适配器刷新URL并下载
+        try:
+            platform = self.context.get_platform_inst("aiocqhttp")
+            if platform:
+                client = platform.get_client()
+                file_id = ""
+                mid = file_msg.get("mid", "")
+                if mid:
+                    try:
+                        raw = await client.call_action(action="get_msg", message_id=int(mid))
+                        for seg in (raw.get("message") or []):
+                            if seg.get("type") == "file":
+                                file_id = seg.get("data", {}).get("file_id", "")
+                    except Exception:
+                        pass
+                if file_id:
+                    act = "get_group_file_url" if gid else "get_private_file_url"
+                    kw = {"file_id": file_id}
+                    if gid:
+                        kw["group_id"] = int(gid)
+                    ret = await client.call_action(action=act, **kw)
+                    if ret and "url" in ret:
+                        file_url = ret["url"]
+        except Exception:
+            pass
+
+        # 2) 下载文件
+        try:
+            async with aiohttp.ClientSession() as sess:
+                async with sess.get(file_url, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+                    if resp.status == 200:
+                        content = await resp.text()
+        except Exception:
+            pass
+
+        if not content:
+            return "无法下载文件(QQ文件链接已过期)。请打开文件全选复制(Ctrl+A→Ctrl+C)，发送「导入抽卡记录」并粘贴内容。"
+
+        # 3) 如果是Client.log，尝试提取gacha参数
+        player_id = record_id = server_id = None
+        for line in content.split("\n"):
+            if "OpenWebView" not in line or "player_id" not in line:
+                continue
+            m = re.search(r'https?://[^\s"]+', line)
+            if not m:
+                continue
+            url = m.group(0).rstrip('"')
+            p = urlparse(url)
+            qs = (p.fragment or p.query)
+            params = parse_qs(qs.split("?", 1)[1]) if "?" in qs else {}
+            pid = params.get("player_id", [None])[0]
+            rid = params.get("record_id", [None])[0]
+            svr = params.get("svr_id", [None])[0]
+            if pid and rid:
+                player_id, record_id, server_id = pid, rid, svr or "76402e5b20be2c39f095a152090afddc"
+                break
+
+        if player_id and record_id:
+            return f"player_id={player_id}&record_id={record_id}&svr_id={server_id}"
+        return content[:8000]
+
+    # ===================== 抽卡数据处理 =====================
+
+    RESIDENT_FIVE_STAR = ["鉴心", "卡卡罗", "安可", "维里奈", "凌阳"]
+
+    async def _format_gacha_pool(self, records: list) -> dict:
+        """对标原项目 Gacha.js dataFormat，异步获取角色头像URL"""
+        array = records
+        if not array:
+            return {"info": {"total": 0, "time": [None, None], "no5Star": 0, "no4Star": 0, "fiveStar": 0, "fourStar": 0, "std5Star": 0, "fourStarWpn": 0, "max4Star": "无", "avg5Star": 0, "avg4Star": 0, "avgUP": 0, "minPit": 0.0, "upCost": "0.00", "worstLuck": 0, "bestLuck": 0}, "pool": []}
+        first5 = next((i for i, x in enumerate(array) if x.get("qualityLevel") == 5), -1)
+        first4 = next((i for i, x in enumerate(array) if x.get("qualityLevel") == 4), -1)
+        no5 = first5 if first5 >= 0 else len(array)
+        no4 = first4 if first4 >= 0 else len(array)
+        fl = [x for x in array if x.get("qualityLevel") == 5]
+        f4 = [x for x in array if x.get("qualityLevel") == 4]
+        f5n, f4n = len(fl), len(f4)
+        std5 = sum(1 for x in fl if x.get("name") in self.RESIDENT_FIVE_STAR)
+        f4w = sum(1 for x in f4 if x.get("resourceType") == "武器")
+        cnt4 = {}
+        for x in f4: n = x.get("name", "?"); cnt4[n] = cnt4.get(n, 0) + 1
+        max4 = max(cnt4, key=cnt4.get) if cnt4 else "无"
+        avg5 = round((len(array) - no5) / f5n) if f5n else 0
+        avg4 = round((len(array) - no4) / f4n) if f4n else 0
+        upc = f5n - std5
+        avgU = round((len(array) - no5) / upc) if upc else 0
+        first_std = 1 if fl and fl[0].get("name") in self.RESIDENT_FIVE_STAR else 0
+        t5p = first_std + f5n
+        minP = 0.0 if t5p == std5 else round((t5p - std5 * 2) / (t5p - std5) * 100, 1)
+        upCost_ = f"{(avgU * 160 / 10000):.2f}"
+        idx5 = [i for i, x in enumerate(array) if x.get("qualityLevel") == 5]
+        gaps = [idx5[i] - idx5[i - 1] for i in range(1, len(idx5))]
+        if idx5:
+            gaps.append(len(array) - idx5[-1] - 1)
+        bestL = min(gaps) if gaps else 0
+        worstL = max(gaps) if gaps else 0
+
+        # 批量获取五星角色头像
+        avatar_cache = {}
+        async def _get_avatar(name: str) -> str:
+            if name in avatar_cache:
+                return avatar_cache[name]
+            try:
+                r = await self.wiki.get_record(name)
+                if r["status"]:
+                    url = r["record"].get("content", {}).get("contentUrl", "")
+                    avatar_cache[name] = url
+                    return url
+            except Exception:
+                pass
+            avatar_cache[name] = ""
+            return ""
+
+        # 去重后并行获取
+        unique_names = list({x.get("name", "") for x in fl if x.get("name")})
+        if unique_names:
+            await asyncio.gather(*[_get_avatar(n) for n in unique_names])
+
+        pool_list = [{"name": x.get("name", "?"), "times": next((j for j in range(array.index(x) + 1, len(array)) if array[j].get("qualityLevel") == 5), len(array)) - array.index(x), "isUp": x.get("name") not in self.RESIDENT_FIVE_STAR, "avatar": avatar_cache.get(x.get("name", ""), "")} for x in fl]
+        return {"info": {"total": len(array), "time": [array[0].get("time"), array[-1].get("time")], "no5Star": no5, "no4Star": no4, "fiveStar": f5n, "fourStar": f4n, "std5Star": std5, "fourStarWpn": f4w, "max4Star": max4, "avg5Star": avg5, "avg4Star": avg4, "avgUP": avgU, "minPit": minP, "upCost": upCost_, "worstLuck": worstL, "bestLuck": bestL}, "pool": pool_list}
+
+    async def _do_import_gacha(self, event: AstrMessageEvent, data: str) -> str:
+        """解析各种格式的抽卡数据，查询API并缓存。返回结果字符串。"""
+        json_data = {}
+        data = data.strip()
+
+        # Client.log
+        if "OpenWebView" in data and "player_id" in data:
+            pid = rid = svr = None
+            for line in data.split("\n"):
+                if "OpenWebView" not in line or "player_id" not in line:
+                    continue
+                m = re.search(r'https?://[^\s"]+', line)
+                if not m:
+                    continue
+                url = m.group(0).rstrip('"')
+                p = urlparse(url)
+                qs = (p.fragment or p.query)
+                params = parse_qs(qs.split("?", 1)[1]) if "?" in qs else {}
+                pid = params.get("player_id", [None])[0]
+                rid = params.get("record_id", [None])[0]
+                svr = params.get("svr_id", [None])[0]
+                if pid and rid:
+                    pid, rid, svr = pid, rid, svr or "76402e5b20be2c39f095a152090afddc"
+                    break
+            if pid and rid:
+                json_data = {"playerId": pid, "recordId": rid, "serverId": svr, "languageCode": "zh-Hans"}
+            else:
+                return "Client.log 中未找到抽卡记录链接。请确认已打开过游戏抽卡页面。"
+
+        elif not json_data:
+            # 查询字符串
+            if re.match(r'^player[_]?[Ii]d=\d+&', data):
+                params = parse_qs(data)
+                pid = params.get("player_id", [None])[0] or params.get("playerId", [None])[0]
+                rid = params.get("record_id", [None])[0] or params.get("recordId", [None])[0]
+                svr = params.get("svr_id", [None])[0] or params.get("serverId", [None])[0]
+                if pid and rid:
+                    json_data = {"playerId": pid, "recordId": rid, "serverId": svr or "76402e5b20be2c39f095a152090afddc", "languageCode": "zh-Hans"}
+                else:
+                    return "无法从参数解析 player_id 或 record_id。"
+
+            # URL
+            elif re.search(r'https?://', data):
+                url = re.search(r'https?://[^\s]+', data).group(0)
+                p = urlparse(url)
+                qs = (p.fragment or p.query)
+                params = parse_qs(qs.split("?", 1)[1]) if "?" in qs else {}
+                pid = params.get("player_id", [None])[0] or params.get("playerId", [None])[0]
+                rid = params.get("record_id", [None])[0] or params.get("recordId", [None])[0]
+                svr = params.get("svr_id", [None])[0] or params.get("serverId", [None])[0]
+                if pid and rid:
+                    json_data = {"playerId": pid, "recordId": rid, "serverId": svr or "76402e5b20be2c39f095a152090afddc", "languageCode": "zh-Hans"}
+                else:
+                    return "无法从链接解析 player_id 或 record_id。"
+
+            # JSON
+            else:
+                try:
+                    d = json.loads(data)
+                    if d.get("playerId") and d.get("recordId"):
+                        json_data = {"playerId": d["playerId"], "recordId": d["recordId"], "serverId": d.get("serverId", "76402e5b20be2c39f095a152090afddc"), "languageCode": d.get("languageCode", "zh-Hans")}
+                    else:
+                        return "JSON缺少 playerId 或 recordId 字段。"
+                except json.JSONDecodeError:
+                    return "无法识别格式。请提供 Client.log内容 / URL链接 / JSON请求体 / 查询参数。"
+
+        if not json_data.get("playerId"):
+            return "未能获取有效抽卡参数。"
+
+        player_id = json_data["playerId"]
+        record_id = json_data["recordId"]
+        server_id = json_data["serverId"]
+        language_code = json_data["languageCode"]
+        logger.info(f"[Waves] 查询抽卡: UID={player_id}")
+
+        pool_labels = {1: "角色", 2: "武器", 3: "常驻角色", 4: "常驻武器", 5: "新手", 6: "自选", 7: "感恩"}
+        all_results = []
+        failed = []
+        for pool_id in range(1, 8):
+            q = {"playerId": player_id, "serverId": server_id, "languageCode": language_code, "recordId": record_id, "cardPoolId": str(pool_id), "cardPoolType": str(pool_id)}
+            d = await self.kuro.get_gacha(q)
+            if d["status"] and isinstance(d["data"], list):
+                for r in d["data"]:
+                    r["gacha_id"] = pool_id
+                all_results.extend(d["data"])
+            else:
+                failed.append(pool_labels.get(pool_id, str(pool_id)))
+
+        if not all_results and failed:
+            return f"所有卡池查询均失败: {', '.join(failed)}。recordId 可能已过期，请重新打开游戏抽卡页面后获取最新 Client.log。"
+
+        # 保存缓存
+        self.config_mgr.set_gacha_records(player_id, {
+            "info": {"lang": "zh-cn", "region_time_zone": 8, "export_timestamp": int(datetime.now().timestamp() * 1000), "export_app": "Waves-AstrBot-Plugin", "export_app_version": "1.0.0", "wwgf_version": "v0.1b", "uid": player_id},
+            "list": all_results,
+        })
+
+        # 构建展示数据
+        pm = {1: "upCharPool", 2: "upWpnPool", 3: "stdCharPool", 4: "stdWpnPool", 5: "otherPool", 6: "upCharPool", 7: "otherPool"}
+        gd = {"playerId": str(player_id)}
+        total = 0
+        for gid_key, recs in {g: [r for r in all_results if r["gacha_id"] == g] for g in {r["gacha_id"] for r in all_results}}.items():
+            pkey = pm.get(gid_key, "otherPool")
+            gd.setdefault(pkey, []).extend(recs)
+        for k in list(gd.keys()):
+            if k == "playerId": continue
+            fmt = await self._format_gacha_pool(gd[k])
+            total += fmt["info"]["total"]
+            gd[k] = fmt
+
+        result = f"导入成功！UID {player_id} 共 {total} 抽，已保存 {len(all_results)} 条记录。"
+        lines = []
+        for pk in ["upCharPool", "upWpnPool", "stdCharPool", "stdWpnPool", "otherPool"]:
+            pd = gd.get(pk)
+            if pd and isinstance(pd, dict) and pd.get("info", {}).get("total", 0) > 0:
+                pl = {"upCharPool": "角色活动", "upWpnPool": "武器活动", "stdCharPool": "常驻角色", "stdWpnPool": "常驻武器", "otherPool": "其他"}.get(pk, pk)
+                lines.append(f"{pl}: {pd['info']['total']}抽")
+        if lines:
+            result += "\n" + "\n".join(lines)
+        return result
 
     # ===================== 定时任务 =====================
 
