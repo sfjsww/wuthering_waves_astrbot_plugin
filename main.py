@@ -261,7 +261,7 @@ class WavesPlugin(Star):
             img = await self.render.render("charProfile", {"data": {
                 "uid": ac["roleId"],
                 "rolePicUrl": dt["data"]["role"].get("rolePicUrl", ""),
-                "roleDetail": dt["data"],
+                "roleDetail": {"data": dt["data"]},
             }})
             yield event.image_result(img)
             return
@@ -283,7 +283,7 @@ class WavesPlugin(Star):
             return
         d = await self.kuro.get_base_data(ac["serverId"], ac["roleId"], ac["token"])
         if d["status"]:
-            img = await self.render.render("userInfo", d["data"])
+            img = await self.render.render("userInfo", {"baseData": d["data"]})
             yield event.image_result(img)
         else:
             yield d["msg"]
@@ -305,7 +305,7 @@ class WavesPlugin(Star):
             return
         d = await self.kuro.get_calabash_data(ac["serverId"], ac["roleId"], ac["token"])
         if d["status"]:
-            img = await self.render.render("calaBash", d["data"])
+            img = await self.render.render("calaBash", {"calabashData": d["data"]})
             yield event.image_result(img)
         else:
             yield d["msg"]
@@ -327,7 +327,7 @@ class WavesPlugin(Star):
             return
         d = await self.kuro.get_challenge_data(ac["serverId"], ac["roleId"], ac["token"])
         if d["status"]:
-            img = await self.render.render("challengeDetails", d["data"])
+            img = await self.render.render("challengeDetails", {"challengeData": d["data"]})
             yield event.image_result(img)
         else:
             yield d["msg"]
@@ -349,7 +349,7 @@ class WavesPlugin(Star):
             return
         d = await self.kuro.get_explore_data(ac["serverId"], ac["roleId"], ac["token"])
         if d["status"]:
-            img = await self.render.render("exploreIndex", d["data"])
+            img = await self.render.render("exploreIndex", {"exploreData": d["data"]})
             yield event.image_result(img)
         else:
             yield d["msg"]
@@ -371,7 +371,7 @@ class WavesPlugin(Star):
             return
         d = await self.kuro.get_tower_data(ac["serverId"], ac["roleId"], ac["token"])
         if d["status"]:
-            img = await self.render.render("towerData", d["data"])
+            img = await self.render.render("towerData", {"towerData": d["data"]})
             yield event.image_result(img)
         else:
             yield d["msg"]
@@ -402,7 +402,14 @@ class WavesPlugin(Star):
         if not valid:
             yield "未展示任何角色"
             return
-        img = await self.render.render("training", {"roleData": rd["data"], "roleDetails": valid})
+        role_list = []
+        for r in rd["data"].get("roleList", []):
+            detail = next((d for d in valid if d["role"]["roleId"] == r["roleId"]), None)
+            merged = dict(r)
+            if detail:
+                merged.update(detail)
+            role_list.append(merged)
+        img = await self.render.render("training", {"roleList": role_list, "baseData": rd["data"]})
         yield event.image_result(img)
 
     @filter.llm_tool(name="query_waves_gacha_records")
@@ -477,7 +484,7 @@ class WavesPlugin(Star):
         ac = tokens[0]
         d = await self.kuro.get_game_data(ac["token"])
         if d["status"]:
-            img = await self.render.render("dailyData", d["data"])
+            img = await self.render.render("dailyData", {"gameData": d["data"]})
             yield event.image_result(img)
         else:
             yield d["msg"]

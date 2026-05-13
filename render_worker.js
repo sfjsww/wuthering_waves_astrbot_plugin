@@ -37,8 +37,17 @@ async function render(req) {
     let html = fs.readFileSync(tplFile, 'utf-8');
     const layoutPath = path.join(resources_dir, 'common', 'layout');
 
+    // 模板变量默认值，防止 art-template 因变量不存在而报错
+    const templateDefaults = {
+        baseData: {}, avatarUrl: '', gameData: {}, calabashData: {},
+        challengeData: {}, exploreData: {}, towerData: {}, roleList: [],
+        coinData: {}, taskData: { dailyTask: [] }, data: {}, listData: [],
+        roleData: {}, roleDetails: [],
+    };
+
     // 复现原 Render.js beforeRender 逻辑
     const renderData = {
+        ...templateDefaults,
         ...params,
         pluginResources: `file://${resources_dir}`,
         _res_path: `file://${tplDir}/`,
